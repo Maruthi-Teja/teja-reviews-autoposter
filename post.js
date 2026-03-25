@@ -59,23 +59,40 @@ function getTodaysTopic() {
 
 // ── Claude API helper ──
 async function callClaude(prompt, maxTokens = 2000) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type":      "application/json",
-      "x-api-key":         ANTHROPIC_KEY,
-      "anthropic-version": "2023-06-01"
-    },
-    body: JSON.stringify({
-      model:      "claude-sonnet-4-20250514",
-      max_tokens: maxTokens,
-      messages:   [{ role: "user", content: prompt }]
-    })
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(`Claude API error ${response.status}: ${JSON.stringify(data)}`);
-  if (!data.content || !data.content[0]) throw new Error(`Unexpected Claude response: ${JSON.stringify(data)}`);
-  return data.content[0].text;
+  const maxRetries = 4;
+  const baseDelayMs = 2500;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type":      "application/json",
+        "x-api-key":         ANTHROPIC_KEY,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model:      "claude-sonnet-4-20250514",
+        max_tokens: maxTokens,
+        messages:   [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    if (response.ok) {
+      if (!data.content || !data.content[0]) throw new Error(`Unexpected Claude response: ${JSON.stringify(data)}`);
+      return data.content[0].text;
+    }
+
+    const isOverloaded = response.status === 529 || data?.error?.type === "overloaded_error";
+    const canRetry = isOverloaded && attempt < maxRetries;
+    if (!canRetry) throw new Error(`Claude API error ${response.status}: ${JSON.stringify(data)}`);
+
+    const delay = baseDelayMs * 2 ** (attempt - 1) + Math.floor(Math.random() * 800);
+    console.log(`⚠️  Claude overloaded (attempt ${attempt}/${maxRetries}) — retrying in ${Math.round(delay / 1000)}s...`);
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+
+  throw new Error("Claude API retries exhausted");
 }
 
 // ── Fetch free image from Unsplash ──
