@@ -10,6 +10,7 @@ const WORDPRESS_URL = "https://tejareviews.in";
 const WP_USERNAME   = "maruthiteja456@gmail.com";
 const WP_APP_PASS   = process.env.WP_APP_PASSWORD || process.env.WP_PASS;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
 const AFFILIATE_TAG = "maruthiteja-21";
 
 // ── Add more topics here — script rotates daily ──
@@ -78,11 +79,32 @@ async function callClaude(prompt, maxTokens = 2000) {
 }
 
 // ── Fetch free image from Unsplash ──
-async function fetchImage(query) {
+async function fetchImage(topic) {
+  const productQuery = `${topic.product} product`;
+  const fallbackQuery = topic.imageQuery || topic.product;
+
+  if (PEXELS_API_KEY) {
+    try {
+      console.log(`🖼️  Fetching product image from Pexels for: "${productQuery}"...`);
+      const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(productQuery)}&per_page=1&orientation=landscape`, {
+        headers: { Authorization: PEXELS_API_KEY }
+      });
+      const pexelsData = await pexelsRes.json();
+      const pexelsImage = pexelsData?.photos?.[0]?.src?.landscape || pexelsData?.photos?.[0]?.src?.large2x;
+      if (pexelsRes.ok && pexelsImage) {
+        console.log(`✅ Product image fetched from Pexels`);
+        return pexelsImage;
+      }
+      console.log("⚠️  Pexels returned no matching product image — falling back");
+    } catch {
+      console.log("⚠️  Pexels fetch failed — falling back");
+    }
+  }
+
   try {
-    console.log(`🖼️  Fetching image for: "${query}"...`);
+    console.log(`🖼️  Fetching fallback image for: "${fallbackQuery}"...`);
     // Uses Unsplash Source — free, no API key needed
-    const imageUrl = `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(query)}`;
+    const imageUrl = `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(fallbackQuery)}`;
     // Verify image loads
     const res = await fetch(imageUrl, { method: "HEAD" });
     if (res.ok || res.status === 301 || res.redirected) {
@@ -92,7 +114,7 @@ async function fetchImage(query) {
   } catch {
     console.log("⚠️  Image fetch failed — using placeholder");
   }
-  return `https://placehold.co/1200x600/1a1a2e/ffffff?text=${encodeURIComponent(query)}`;
+  return `https://placehold.co/1200x600/1a1a2e/ffffff?text=${encodeURIComponent(topic.product)}`;
 }
 
 // ── Upload image to WordPress media library ──
@@ -323,7 +345,7 @@ async function main() {
   console.log(`📦 Today: ${topic.product} (${topic.price})`);
 
   // Step 1 — Fetch image
-  const imageUrl = await fetchImage(topic.imageQuery);
+  const imageUrl = await fetchImage(topic);
 
   // Step 2 — Generate content + meta in parallel
   const [content, meta] = await Promise.all([
