@@ -8,7 +8,7 @@ import fetch from "node-fetch";
 
 const WORDPRESS_URL = "https://tejareviews.in";
 const WP_USERNAME   = "maruthiteja456@gmail.com";
-const WP_APP_PASS   = process.env.WP_APP_PASSWORD;
+const WP_APP_PASS   = process.env.WP_APP_PASSWORD || process.env.WP_PASS;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const AFFILIATE_TAG = "maruthiteja-21";
 
@@ -260,12 +260,15 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
   const auth       = Buffer.from(`${WP_USERNAME}:${WP_APP_PASS}`).toString("base64");
   const categoryId = await getCategoryId(auth, topic.category);
   const tagIds     = await getTagIds(auth, meta.tags);
+  const shouldAutoPublish = process.env.AUTO_PUBLISH === "true";
+  const postStatus = shouldAutoPublish ? "publish" : "draft";
 
   const postPayload = {
     title:          meta.title,
     content:        content,
     slug:           meta.slug,
-    status:         "draft",        // ← change to "publish" for full automation
+    // Safety default: keep posts as drafts unless AUTO_PUBLISH=true is intentionally set.
+    status:         postStatus,
     categories:     [categoryId],
     tags:           tagIds,
     // Rank Math SEO fields
@@ -295,13 +298,17 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
   const post = await res.json();
   if (!res.ok) throw new Error(`WordPress error: ${JSON.stringify(post)}`);
 
-  console.log(`\n🎉 DRAFT CREATED SUCCESSFULLY!`);
+  console.log(`\n🎉 ${postStatus.toUpperCase()} CREATED SUCCESSFULLY!`);
   console.log(`📌 Title:        ${post.title.rendered}`);
   console.log(`🔗 Slug:         /${post.slug}/`);
   console.log(`🖼️  Featured img: ${featuredImageId ? "✅ Set" : "❌ Not set"}`);
   console.log(`🔍 Rank Math:    ✅ SEO fields set`);
   console.log(`✏️  Edit URL:     ${WORDPRESS_URL}/wp-admin/post.php?post=${post.id}&action=edit`);
-  console.log(`\n👆 Review in WordPress → click Publish when ready!`);
+  if (postStatus === "draft") {
+    console.log(`\n👆 Review in WordPress → click Publish when ready!`);
+  } else {
+    console.log(`\n✅ Post was auto-published because AUTO_PUBLISH=true.`);
+  }
   return post;
 }
 
@@ -310,7 +317,7 @@ async function main() {
   console.log("🤖 Teja Reviews — Claude Auto Poster v2");
   console.log("=========================================");
   if (!ANTHROPIC_KEY) throw new Error("Set ANTHROPIC_API_KEY environment variable");
-  if (!WP_APP_PASS)   throw new Error("Set WP_APP_PASSWORD environment variable");
+  if (!WP_APP_PASS)   throw new Error("Set WP_APP_PASSWORD (or WP_PASS) environment variable");
 
   const topic = getTodaysTopic();
   console.log(`📦 Today: ${topic.product} (${topic.price})`);
