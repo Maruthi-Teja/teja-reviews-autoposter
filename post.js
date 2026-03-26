@@ -8,8 +8,9 @@ import fetch from "node-fetch";
 
 const WORDPRESS_URL = "https://tejareviews.in";
 const WP_USERNAME   = "maruthiteja456@gmail.com";
-const WP_APP_PASS   = process.env.WP_APP_PASSWORD;
+const WP_APP_PASS   = process.env.WP_APP_PASSWORD || process.env.WP_PASS;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
 const AFFILIATE_TAG = "maruthiteja-21";
 
 // ── Add more topics here — script rotates daily ──
@@ -58,31 +59,77 @@ function getTodaysTopic() {
 
 // ── Claude API helper ──
 async function callClaude(prompt, maxTokens = 2000) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type":      "application/json",
-      "x-api-key":         ANTHROPIC_KEY,
-      "anthropic-version": "2023-06-01"
-    },
-    body: JSON.stringify({
-      model:      "claude-sonnet-4-20250514",
-      max_tokens: maxTokens,
-      messages:   [{ role: "user", content: prompt }]
-    })
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(`Claude API error ${response.status}: ${JSON.stringify(data)}`);
-  if (!data.content || !data.content[0]) throw new Error(`Unexpected Claude response: ${JSON.stringify(data)}`);
-  return data.content[0].text;
+  const maxRetries = 4;
+  const baseDelayMs = 2500;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type":      "application/json",
+        "x-api-key":         ANTHROPIC_KEY,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model:      "claude-sonnet-4-20250514",
+        max_tokens: maxTokens,
+        messages:   [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    if (response.ok) {
+      if (!data.content || !data.content[0]) throw new Error(`Unexpected Claude response: ${JSON.stringify(data)}`);
+      return data.content[0].text;
+    }
+
+    const isOverloaded = response.status === 529 || data?.error?.type === "overloaded_error";
+    const canRetry = isOverloaded && attempt < maxRetries;
+    if (!canRetry) throw new Error(`Claude API error ${response.status}: ${JSON.stringify(data)}`);
+
+    const delay = baseDelayMs * 2 ** (attempt - 1) + Math.floor(Math.random() * 800);
+    console.log(`⚠️  Claude overloaded (attempt ${attempt}/${maxRetries}) — retrying in ${Math.round(delay / 1000)}s...`);
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+
+  throw new Error("Claude API retries exhausted");
 }
 
-// ── Fetch free image from Unsplash ──
-async function fetchImage(query) {
+// ── Fetch product image (Pexels first, then Unsplash fallback) ──
+async function fetchImage(topic) {
+  const productQuery = `${topic.product} product`;
+  const fallbackQuery = topic.imageQuery || topic.product;
+
+  if (PEXELS_API_KEY) {
+    try {
+      console.log(`🖼️  Fetching product image from Pexels for: "${productQuery}"...`);
+      const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(productQuery)}&per_page=1&orientation=landscape`, {
+        headers: { Authorization: PEXELS_API_KEY }
+      });
+      const pexelsData = await pexelsRes.json();
+      if (!pexelsRes.ok) {
+        if (pexelsRes.status === 401) {
+          console.log("⚠️  Pexels API error: 401 (invalid or missing PEXELS_API_KEY) — falling back");
+        } else {
+          console.log(`⚠️  Pexels API error: ${pexelsRes.status} — falling back`);
+        }
+      } else {
+        const pexelsImage = pexelsData?.photos?.[0]?.src?.landscape || pexelsData?.photos?.[0]?.src?.large2x;
+        if (pexelsImage) {
+          console.log(`✅ Product image fetched from Pexels`);
+          return pexelsImage;
+        }
+        console.log("⚠️  Pexels returned no matching product image — falling back");
+      }
+    } catch {
+      console.log("⚠️  Pexels fetch failed — falling back");
+    }
+  }
+
   try {
-    console.log(`🖼️  Fetching image for: "${query}"...`);
+    console.log(`🖼️  Fetching fallback image for: "${fallbackQuery}"...`);
     // Uses Unsplash Source — free, no API key needed
-    const imageUrl = `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(query)}`;
+    const imageUrl = `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(fallbackQuery)}`;
     // Verify image loads
     const res = await fetch(imageUrl, { method: "HEAD" });
     if (res.ok || res.status === 301 || res.redirected) {
@@ -92,22 +139,24 @@ async function fetchImage(query) {
   } catch {
     console.log("⚠️  Image fetch failed — using placeholder");
   }
-  return `https://placehold.co/1200x600/1a1a2e/ffffff?text=${encodeURIComponent(query)}`;
+  return `https://placehold.co/1200x600/1a1a2e/ffffff?text=${encodeURIComponent(topic.product)}`;
 }
 
 // ── Upload image to WordPress media library ──
 async function uploadImageToWP(auth, imageUrl, altText) {
   try {
     console.log(`📤 Uploading image to WordPress...`);
-    const imgRes  = await fetch(imageUrl);
-    const imgBuffer = await imgRes.buffer();
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) throw new Error(`Image download failed with status ${imgRes.status}`);
+    const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+    const imgContentType = imgRes.headers.get("content-type") || "image/jpeg";
 
     const uploadRes = await fetch(`${WORDPRESS_URL}/wp-json/wp/v2/media`, {
       method: "POST",
       headers: {
         "Authorization":       `Basic ${auth}`,
         "Content-Disposition": `attachment; filename="featured-image.jpg"`,
-        "Content-Type":        "image/jpeg"
+        "Content-Type":        imgContentType
       },
       body: imgBuffer
     });
@@ -260,12 +309,15 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
   const auth       = Buffer.from(`${WP_USERNAME}:${WP_APP_PASS}`).toString("base64");
   const categoryId = await getCategoryId(auth, topic.category);
   const tagIds     = await getTagIds(auth, meta.tags);
+  const shouldAutoPublish = process.env.AUTO_PUBLISH === "true";
+  const postStatus = shouldAutoPublish ? "publish" : "draft";
 
   const postPayload = {
     title:          meta.title,
     content:        content,
     slug:           meta.slug,
-    status:         "draft",        // ← change to "publish" for full automation
+    // Safety default: keep posts as drafts unless AUTO_PUBLISH=true is intentionally set.
+    status:         postStatus,
     categories:     [categoryId],
     tags:           tagIds,
     // Rank Math SEO fields
@@ -295,13 +347,17 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
   const post = await res.json();
   if (!res.ok) throw new Error(`WordPress error: ${JSON.stringify(post)}`);
 
-  console.log(`\n🎉 DRAFT CREATED SUCCESSFULLY!`);
+  console.log(`\n🎉 ${postStatus.toUpperCase()} CREATED SUCCESSFULLY!`);
   console.log(`📌 Title:        ${post.title.rendered}`);
   console.log(`🔗 Slug:         /${post.slug}/`);
   console.log(`🖼️  Featured img: ${featuredImageId ? "✅ Set" : "❌ Not set"}`);
   console.log(`🔍 Rank Math:    ✅ SEO fields set`);
   console.log(`✏️  Edit URL:     ${WORDPRESS_URL}/wp-admin/post.php?post=${post.id}&action=edit`);
-  console.log(`\n👆 Review in WordPress → click Publish when ready!`);
+  if (postStatus === "draft") {
+    console.log(`\n👆 Review in WordPress → click Publish when ready!`);
+  } else {
+    console.log(`\n✅ Post was auto-published because AUTO_PUBLISH=true.`);
+  }
   return post;
 }
 
@@ -310,13 +366,13 @@ async function main() {
   console.log("🤖 Teja Reviews — Claude Auto Poster v2");
   console.log("=========================================");
   if (!ANTHROPIC_KEY) throw new Error("Set ANTHROPIC_API_KEY environment variable");
-  if (!WP_APP_PASS)   throw new Error("Set WP_APP_PASSWORD environment variable");
+  if (!WP_APP_PASS)   throw new Error("Set WP_APP_PASSWORD (or WP_PASS) environment variable");
 
   const topic = getTodaysTopic();
   console.log(`📦 Today: ${topic.product} (${topic.price})`);
 
   // Step 1 — Fetch image
-  const imageUrl = await fetchImage(topic.imageQuery);
+  const imageUrl = await fetchImage(topic);
 
   // Step 2 — Generate content + meta in parallel
   const [content, meta] = await Promise.all([
