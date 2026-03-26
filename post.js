@@ -95,68 +95,6 @@ async function callClaude(prompt, maxTokens = 2000) {
   throw new Error("Claude API retries exhausted");
 }
 
-<<<<<<< HEAD
-// ── Fetch free image from Unsplash ──
-// ── Fetch product image from Pexels with improved accuracy ──
-async function fetchImage(topic) {
-  // Primary queries for product-specific images (in priority order)
-  const queries = [
-    `${topic.product}`,           // Exact product name
-    `${topic.product} product`,   // Product keyword
-    topic.imageQuery              // Category-specific query
-  ];
-
-  if (PEXELS_API_KEY) {
-    for (const query of queries) {
-      try {
-        console.log(`🖼️  Fetching product image from Pexels for: "${query}"...`);
-        
-        const pexelsRes = await fetch(
-          `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape&size=large`,
-          {
-            headers: { Authorization: `Bearer ${PEXELS_API_KEY}` }
-          }
-        );
-
-        if (!pexelsRes.ok) {
-          console.log(`⚠️  Pexels API error: ${pexelsRes.status}`);
-          continue;
-        }
-
-        const pexelsData = await pexelsRes.json();
-        if (!pexelsData?.photos || pexelsData.photos.length === 0) {
-          console.log(`⚠️  No images found for: "${query}"`);
-          continue;
-        }
-
-        // Prioritize larger, high-quality landscape images (1200x600+)
-        const bestImage = pexelsData.photos.find(
-          photo => photo.src?.landscape && photo.width >= 1200 && photo.height >= 600
-        ) || pexelsData.photos.find(
-          photo => photo.src?.landscape
-        ) || pexelsData.photos[0];
-
-        if (bestImage?.src?.landscape) {
-          console.log(`✅ Product image fetched from Pexels using query: "${query}"`);
-          return bestImage.src.landscape;
-        }
-      } catch (error) {
-        console.log(`⚠️  Pexels fetch error for "${query}": ${error.message}`);
-      }
-    }
-    console.log("⚠️  Pexels queries exhausted — falling back to Unsplash");
-  }
-
-  // Fallback to Unsplash if Pexels fails
-  try {
-    const fallbackQuery = topic.imageQuery || topic.product;
-    console.log(`🖼️  Fetching fallback image from Unsplash for: "${fallbackQuery}"...`);
-    const imageUrl = `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(fallbackQuery)}`;
-    const res = await fetch(imageUrl, { method: "HEAD" });
-    if (res.ok || res.status === 301 || res.redirected) {
-      console.log(`✅ Image fetched from Unsplash`);
-      return imageUrl;
-=======
 // ── Helper: Pexels image retrieval ──
 async function fetchImageFromPexels(query) {
   if (!PEXELS_API_KEY) return null;
@@ -170,7 +108,6 @@ async function fetchImageFromPexels(query) {
     if (res.status === 401) {
       console.log("⚠️  Pexels API error: 401 Unauthorized (check PEXELS_API_KEY)");
       return null;
->>>>>>> 850473a (Fix Pexels/Unsplash image fallback and WP_PASSWORD env handling)
     }
     if (!res.ok) {
       console.log(`⚠️  Pexels API error: ${res.status}`);
@@ -191,10 +128,6 @@ async function fetchImageFromPexels(query) {
   } catch (err) {
     console.log(`⚠️  Pexels network error: ${err.message}`);
   }
-<<<<<<< HEAD
-  
-  return `https://placehold.co/1200x600/1a1a2e/ffffff?text=${encodeURIComponent(topic.product)}`;
-=======
 
   return null;
 }
@@ -218,8 +151,9 @@ async function fetchImage(query) {
     console.log("⚠️  PEXELS_API_KEY not set — skipping Pexels");
   }
 
-  console.log(`🖼️  Fetching fallback image from Unsplash for: "${query}"...`);
-  const unsplashUrl = `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(query)}`;
+  const fallbackQuery = query || "smartwatch fitness tracker";
+  console.log(`🖼️  Fetching fallback image from Unsplash for: "${fallbackQuery}"...`);
+  const unsplashUrl = `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(fallbackQuery)}`;
 
   try {
     const res = await fetch(unsplashUrl, { method: "HEAD", redirect: "follow" });
@@ -232,11 +166,9 @@ async function fetchImage(query) {
   }
 
   console.log("⚠️  Unsplash fetch failed — using placeholder");
-  return `https://placehold.co/1200x600/1a1a2e/ffffff?text=${encodeURIComponent(query)}`;
->>>>>>> 850473a (Fix Pexels/Unsplash image fallback and WP_PASSWORD env handling)
+  return `https://placehold.co/1200x600/1a1a2e/ffffff?text=${encodeURIComponent(fallbackQuery)}`;
 }
 
-// ── Upload image to WordPress media library ──
 async function uploadImageToWP(auth, imageUrl, altText) {
   try {
     console.log(`📤 Uploading image to WordPress...`);
