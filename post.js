@@ -96,41 +96,70 @@ async function callClaude(prompt, maxTokens = 2000) {
 }
 
 // ── Fetch free image from Unsplash ──
+// ── Fetch product image from Pexels with improved accuracy ──
 async function fetchImage(topic) {
-  const productQuery = `${topic.product} product`;
-  const fallbackQuery = topic.imageQuery || topic.product;
+  // Primary queries for product-specific images (in priority order)
+  const queries = [
+    `${topic.product}`,           // Exact product name
+    `${topic.product} product`,   // Product keyword
+    topic.imageQuery              // Category-specific query
+  ];
 
   if (PEXELS_API_KEY) {
-    try {
-      console.log(`🖼️  Fetching product image from Pexels for: "${productQuery}"...`);
-      const pexelsRes = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(productQuery)}&per_page=1&orientation=landscape`, {
-        headers: { Authorization: PEXELS_API_KEY }
-      });
-      const pexelsData = await pexelsRes.json();
-      const pexelsImage = pexelsData?.photos?.[0]?.src?.landscape || pexelsData?.photos?.[0]?.src?.large2x;
-      if (pexelsRes.ok && pexelsImage) {
-        console.log(`✅ Product image fetched from Pexels`);
-        return pexelsImage;
+    for (const query of queries) {
+      try {
+        console.log(`🖼️  Fetching product image from Pexels for: "${query}"...`);
+        
+        const pexelsRes = await fetch(
+          `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=landscape&size=large`,
+          {
+            headers: { Authorization: `Bearer ${PEXELS_API_KEY}` }
+          }
+        );
+
+        if (!pexelsRes.ok) {
+          console.log(`⚠️  Pexels API error: ${pexelsRes.status}`);
+          continue;
+        }
+
+        const pexelsData = await pexelsRes.json();
+        if (!pexelsData?.photos || pexelsData.photos.length === 0) {
+          console.log(`⚠️  No images found for: "${query}"`);
+          continue;
+        }
+
+        // Prioritize larger, high-quality landscape images (1200x600+)
+        const bestImage = pexelsData.photos.find(
+          photo => photo.src?.landscape && photo.width >= 1200 && photo.height >= 600
+        ) || pexelsData.photos.find(
+          photo => photo.src?.landscape
+        ) || pexelsData.photos[0];
+
+        if (bestImage?.src?.landscape) {
+          console.log(`✅ Product image fetched from Pexels using query: "${query}"`);
+          return bestImage.src.landscape;
+        }
+      } catch (error) {
+        console.log(`⚠️  Pexels fetch error for "${query}": ${error.message}`);
       }
-      console.log("⚠️  Pexels returned no matching product image — falling back");
-    } catch {
-      console.log("⚠️  Pexels fetch failed — falling back");
     }
+    console.log("⚠️  Pexels queries exhausted — falling back to Unsplash");
   }
 
+  // Fallback to Unsplash if Pexels fails
   try {
-    console.log(`🖼️  Fetching fallback image for: "${fallbackQuery}"...`);
-    // Uses Unsplash Source — free, no API key needed
+    const fallbackQuery = topic.imageQuery || topic.product;
+    console.log(`🖼️  Fetching fallback image from Unsplash for: "${fallbackQuery}"...`);
     const imageUrl = `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(fallbackQuery)}`;
-    // Verify image loads
     const res = await fetch(imageUrl, { method: "HEAD" });
     if (res.ok || res.status === 301 || res.redirected) {
-      console.log(`✅ Image fetched`);
+      console.log(`✅ Image fetched from Unsplash`);
       return imageUrl;
     }
   } catch {
     console.log("⚠️  Image fetch failed — using placeholder");
   }
+  
   return `https://placehold.co/1200x600/1a1a2e/ffffff?text=${encodeURIComponent(topic.product)}`;
 }
 
