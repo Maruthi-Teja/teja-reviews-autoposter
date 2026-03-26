@@ -6,12 +6,12 @@ import fetch from "node-fetch";
 // Features: AI content + images + Rank Math SEO
 // ============================================
 
-const WORDPRESS_URL = "https://tejareviews.in";
-const WP_USERNAME   = "maruthiteja456@gmail.com";
-const WP_APP_PASS   = process.env.WP_APP_PASSWORD || process.env.WP_PASS;
-const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
-const AFFILIATE_TAG = "maruthiteja-21";
+const WORDPRESS_URL    = "https://tejareviews.in";
+const WP_USERNAME      = "maruthiteja456@gmail.com";
+const WP_APP_PASS      = process.env.WP_APP_PASSWORD || process.env.WP_PASS;
+const ANTHROPIC_KEY    = process.env.ANTHROPIC_API_KEY;
+const PEXELS_API_KEY   = process.env.PEXELS_API_KEY;
+const AFFILIATE_TAG    = "maruthiteja-21";
 
 // ── Add more topics here — script rotates daily ──
 const TOPICS = [
@@ -95,6 +95,7 @@ async function callClaude(prompt, maxTokens = 2000) {
   throw new Error("Claude API retries exhausted");
 }
 
+<<<<<<< HEAD
 // ── Fetch free image from Unsplash ──
 // ── Fetch product image from Pexels with improved accuracy ──
 async function fetchImage(topic) {
@@ -155,12 +156,84 @@ async function fetchImage(topic) {
     if (res.ok || res.status === 301 || res.redirected) {
       console.log(`✅ Image fetched from Unsplash`);
       return imageUrl;
+=======
+// ── Helper: Pexels image retrieval ──
+async function fetchImageFromPexels(query) {
+  if (!PEXELS_API_KEY) return null;
+
+  console.log(`🖼️  Fetching product image from Pexels for: "${query}"...`);
+  try {
+    const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1`, {
+      headers: { Authorization: PEXELS_API_KEY }
+    });
+
+    if (res.status === 401) {
+      console.log("⚠️  Pexels API error: 401 Unauthorized (check PEXELS_API_KEY)");
+      return null;
+>>>>>>> 850473a (Fix Pexels/Unsplash image fallback and WP_PASSWORD env handling)
     }
-  } catch {
-    console.log("⚠️  Image fetch failed — using placeholder");
+    if (!res.ok) {
+      console.log(`⚠️  Pexels API error: ${res.status}`);
+      return null;
+    }
+
+    const data = await res.json();
+    if (data.photos && data.photos.length > 0) {
+      const src = data.photos[0].src;
+      const imageUrl = src.large2x || src.large || src.medium || src.original;
+      if (imageUrl) {
+        console.log(`✅ Pexels image found: ${imageUrl}`);
+        return imageUrl;
+      }
+    }
+
+    console.log("⚠️  Pexels query returned no images");
+  } catch (err) {
+    console.log(`⚠️  Pexels network error: ${err.message}`);
   }
+<<<<<<< HEAD
   
   return `https://placehold.co/1200x600/1a1a2e/ffffff?text=${encodeURIComponent(topic.product)}`;
+=======
+
+  return null;
+}
+
+// ── Fetch image with Pexels first then Unsplash fallback ──
+async function fetchImage(query) {
+  const attempts = [
+    query,
+    `${query} product`,
+    `${query} review`,
+    "smartwatch fitness tracker"
+  ];
+
+  if (PEXELS_API_KEY) {
+    for (const q of attempts) {
+      const imageUrl = await fetchImageFromPexels(q);
+      if (imageUrl) return imageUrl;
+    }
+    console.log("⚠️  Pexels queries exhausted — falling back to Unsplash");
+  } else {
+    console.log("⚠️  PEXELS_API_KEY not set — skipping Pexels");
+  }
+
+  console.log(`🖼️  Fetching fallback image from Unsplash for: "${query}"...`);
+  const unsplashUrl = `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(query)}`;
+
+  try {
+    const res = await fetch(unsplashUrl, { method: "HEAD", redirect: "follow" });
+    if (res.ok || res.status === 301 || res.redirected) {
+      console.log(`✅ Unsplash image available`);
+      return unsplashUrl;
+    }
+  } catch (err) {
+    console.log(`⚠️  Unsplash network error: ${err.message}`);
+  }
+
+  console.log("⚠️  Unsplash fetch failed — using placeholder");
+  return `https://placehold.co/1200x600/1a1a2e/ffffff?text=${encodeURIComponent(query)}`;
+>>>>>>> 850473a (Fix Pexels/Unsplash image fallback and WP_PASSWORD env handling)
 }
 
 // ── Upload image to WordPress media library ──
@@ -168,7 +241,8 @@ async function uploadImageToWP(auth, imageUrl, altText) {
   try {
     console.log(`📤 Uploading image to WordPress...`);
     const imgRes  = await fetch(imageUrl);
-    const imgBuffer = await imgRes.buffer();
+    const arrayBuf = await imgRes.arrayBuffer();
+    const imgBuffer = Buffer.from(arrayBuf);
 
     const uploadRes = await fetch(`${WORDPRESS_URL}/wp-json/wp/v2/media`, {
       method: "POST",
