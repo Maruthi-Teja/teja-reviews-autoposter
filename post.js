@@ -96,7 +96,45 @@ async function callClaude(prompt, maxTokens = 2000) {
 }
 
 // ── Helper: Pexels image retrieval ──
-fetchImageFromPexels
+async function fetchImageFromPexels(query) {
+  if (!PEXELS_API_KEY) return null;
+
+  console.log(`🖼️  Fetching image from Pexels: "${query}"...`);
+  try {
+    // Try landscape first, then any orientation
+    const orientations = ["landscape", ""];
+    for (const orientation of orientations) {
+      const url = orientation
+        ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=${orientation}`
+        : `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5`;
+
+      const res = await fetch(url, {
+        headers: { Authorization: PEXELS_API_KEY }
+      });
+
+      if (res.status === 401) {
+        console.log("⚠️  Pexels 401 Unauthorized — check PEXELS_API_KEY");
+        return null;
+      }
+      if (!res.ok) continue;
+
+      const data = await res.json();
+      if (data.photos && data.photos.length > 0) {
+        // Pick the photo with highest width (best quality)
+        const best = data.photos.sort((a, b) => b.width - a.width)[0];
+        const imageUrl = best.src.large2x || best.src.large || best.src.medium;
+        if (imageUrl) {
+          console.log(`✅ Pexels image: ${imageUrl}`);
+          return imageUrl;
+        }
+      }
+    }
+    console.log("⚠️  Pexels returned no results");
+  } catch (err) {
+    console.log(`⚠️  Pexels error: ${err.message}`);
+  }
+  return null;
+}
 
 // ── Fetch image with Pexels first then Unsplash fallback ──
 async function fetchImage(query) {
