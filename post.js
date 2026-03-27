@@ -19,35 +19,35 @@ const TOPICS = [
     product:      "OnePlus Nord Buds 4 Pro",
     price:        "₹3,999",
     category:     "Tech Reviews",
-    imageQuery:   "wireless earbuds headphones",
+    imageQuery:   "tws earbuds white product close up",
     keywords:     ["OnePlus Nord Buds 4 Pro review India", "best earbuds under 4000", "OnePlus ANC earbuds 2026"]
   },
   {
     product:      "boAt Rockerz 550 Bluetooth Headphones",
     price:        "₹1,499",
     category:     "Tech Reviews",
-    imageQuery:   "bluetooth headphones music",
+    imageQuery:   "over ear headphones black product",
     keywords:     ["boAt Rockerz 550 review", "best headphones under 1500 India", "boAt wireless headphones"]
   },
   {
     product:      "Redmi Note 14 Pro",
     price:        "₹25,999",
     category:     "Tech Reviews",
-    imageQuery:   "smartphone android mobile phone",
+    imageQuery:   "android smartphone hand close up screen",
     keywords:     ["Redmi Note 14 Pro review India", "best phone under 26000", "Redmi Note 14 Pro camera"]
   },
   {
     product:      "Realme Watch 3 Pro",
     price:        "₹4,999",
     category:     "Tech Reviews",
-    imageQuery:   "smartwatch fitness tracker",
+    imageQuery:   "smartwatch wrist close up sport",
     keywords:     ["Realme Watch 3 Pro review India", "best smartwatch under 5000", "Realme smartwatch 2026"]
   },
   {
     product:      "Mi Smart Band 8",
     price:        "₹2,499",
     category:     "Tech Reviews",
-    imageQuery:   "fitness band smartband wearable",
+    imageQuery:   "fitness band wrist activity tracker slim",
     keywords:     ["Mi Smart Band 8 review India", "best fitness band under 3000", "Xiaomi band 8 review"]
   }
 ];
@@ -96,49 +96,15 @@ async function callClaude(prompt, maxTokens = 2000) {
 }
 
 // ── Helper: Pexels image retrieval ──
-async function fetchImageFromPexels(query) {
-  if (!PEXELS_API_KEY) return null;
-
-  console.log(`🖼️  Fetching product image from Pexels for: "${query}"...`);
-  try {
-    const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1`, {
-      headers: { Authorization: PEXELS_API_KEY }
-    });
-
-    if (res.status === 401) {
-      console.log("⚠️  Pexels API error: 401 Unauthorized (check PEXELS_API_KEY)");
-      return null;
-    }
-    if (!res.ok) {
-      console.log(`⚠️  Pexels API error: ${res.status}`);
-      return null;
-    }
-
-    const data = await res.json();
-    if (data.photos && data.photos.length > 0) {
-      const src = data.photos[0].src;
-      const imageUrl = src.large2x || src.large || src.medium || src.original;
-      if (imageUrl) {
-        console.log(`✅ Pexels image found: ${imageUrl}`);
-        return imageUrl;
-      }
-    }
-
-    console.log("⚠️  Pexels query returned no images");
-  } catch (err) {
-    console.log(`⚠️  Pexels network error: ${err.message}`);
-  }
-
-  return null;
-}
+fetchImageFromPexels
 
 // ── Fetch image with Pexels first then Unsplash fallback ──
 async function fetchImage(query) {
   const attempts = [
-    query,
+    query,              // was topic object — now correctly a string
     `${query} product`,
     `${query} review`,
-    "smartwatch fitness tracker"
+    "tech gadget product"  // better generic fallback than "smartwatch fitness tracker"
   ];
 
   if (PEXELS_API_KEY) {
@@ -397,7 +363,7 @@ async function main() {
   console.log(`📦 Today: ${topic.product} (${topic.price})`);
 
   // Step 1 — Fetch image
-  const imageUrl = await fetchImage(topic);
+const imageUrl = await fetchImage(topic.imageQuery);
 
   // Step 2 — Generate content + meta in parallel
   const [content, meta] = await Promise.all([
