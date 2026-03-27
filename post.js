@@ -1,4 +1,5 @@
 import fetch from "node-fetch";
+import fs from "fs";
 
 // ============================================
 // Teja Reviews — Claude Auto Poster v2
@@ -12,6 +13,7 @@ const WP_APP_PASS      = process.env.WP_APP_PASSWORD || process.env.WP_PASS;
 const ANTHROPIC_KEY    = process.env.ANTHROPIC_API_KEY;
 const PEXELS_API_KEY   = process.env.PEXELS_API_KEY;
 const AFFILIATE_TAG    = "maruthiteja-21";
+const HISTORY_FILE     = "./posted.json";
 
 // ── Add more topics here — script rotates daily ──
 const TOPICS = [
@@ -55,6 +57,53 @@ const TOPICS = [
 function getTodaysTopic() {
   const dayIndex = Math.floor(Date.now() / 86400000) % TOPICS.length;
   return TOPICS[dayIndex];
+}
+
+function isAlreadyPosted(product) {
+  if (!fs.existsSync(HISTORY_FILE)) return false;
+
+  try {
+    const data = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf-8"));
+    return Array.isArray(data) && data.includes(product);
+  } catch {
+    return false;
+  }
+}
+
+function markPosted(product) {
+  let data = [];
+  if (fs.existsSync(HISTORY_FILE)) {
+    try {
+      data = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf-8"));
+    } catch {
+      data = [];
+    }
+  }
+
+  const unique = [...new Set([...(Array.isArray(data) ? data : []), product])];
+  fs.writeFileSync(HISTORY_FILE, JSON.stringify(unique, null, 2));
+}
+
+function buildSeoSlug(product) {
+  return `${product} review india ${new Date().getFullYear()}`
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+async function retry(fn, retries = 3, label = "operation") {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      const delay = 1000 * 2 ** i;
+      console.log(`⚠️  ${label} failed (attempt ${i + 1}/${retries}) — retrying in ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
 }
 
 // ── Claude API helper ──
@@ -177,10 +226,11 @@ async function uploadImageToWP(auth, imageUrl, altText) {
   try {
     console.log(`📤 Uploading image to WordPress...`);
     const imgRes  = await fetch(imageUrl);
+    if (!imgRes.ok) throw new Error(`Image download failed with ${imgRes.status}`);
     const arrayBuf = await imgRes.arrayBuffer();
     const imgBuffer = Buffer.from(arrayBuf);
 
-    const uploadRes = await fetch(`${WORDPRESS_URL}/wp-json/wp/v2/media`, {
+    const uploadRes = await retry(() => fetch(`${WORDPRESS_URL}/wp-json/wp/v2/media`, {
       method: "POST",
       headers: {
         "Authorization":       `Basic ${auth}`,
@@ -188,10 +238,24 @@ async function uploadImageToWP(auth, imageUrl, altText) {
         "Content-Type":        "image/jpeg"
       },
       body: imgBuffer
-    });
+    }), 3, "WordPress media upload");
+
+    if (!uploadRes.ok) throw new Error(`Media upload failed with ${uploadRes.status}`);
 
     const media = await uploadRes.json();
     if (media.id) {
+      await retry(() => fetch(`${WORDPRESS_URL}/wp-json/wp/v2/media/${media.id}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${auth}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          alt_text: altText,
+          title: altText
+        })
+      }), 3, "WordPress media metadata update");
+
       console.log(`✅ Image uploaded — ID: ${media.id}`);
       return { id: media.id, url: media.source_url };
     }
@@ -212,7 +276,16 @@ async function generatePost(topic, imageUrl) {
        </figure>`
     : "";
 
-  const prompt = `You are a tech reviewer writing for an Indian audience on tejareviews.in.
+  const prompt = `You are a REAL Indian tech reviewer writing for an Indian audience on tejareviews.in.
+
+IMPORTANT:
+- Add 1 personal experience section (for example: "After using this for 7 days...")
+- Add 1 meaningful comparison with a competitor in the same price segment
+- Add realistic pros/cons only (avoid generic points)
+- Avoid robotic tone and write in conversational human style
+- Mention price comparison context and "best price currently" where relevant
+- Mention Amazon trust and delivery reliability naturally
+- Add LSI keywords naturally
 
 Write a detailed SEO-optimised blog post reviewing the ${topic.product} priced at ${topic.price} in India.
 
@@ -271,8 +344,24 @@ Target keywords to naturally use: ${topic.keywords.join(", ")}
 Friendly honest tone. Indian audience. All prices in ₹. Minimum 800 words. Do NOT include the post title in the content.`;
 
   const text = await callClaude(prompt, 2500);
-  console.log(`✅ Post generated — ${text.length} chars`);
-  return text;
+  const toc = `
+<div style="border:1px solid #ddd;padding:15px;border-radius:8px;margin:20px 0;">
+<strong>📑 Table of Contents</strong>
+<ul>
+<li>Quick Verdict</li>
+<li>Specifications</li>
+<li>Pros & Cons</li>
+<li>Final Verdict</li>
+</ul>
+</div>`;
+  const internalLinks = `
+<p>Also check our other reviews:
+<a href="https://tejareviews.in/category/tech-reviews/">Latest Tech Reviews</a></p>
+`;
+
+  const enhancedContent = `${toc}\n${text}\n${internalLinks}`;
+  console.log(`✅ Post generated — ${enhancedContent.length} chars`);
+  return enhancedContent;
 }
 
 // ── Generate SEO meta with Claude ──
@@ -291,7 +380,7 @@ Return ONLY raw JSON no markdown no backticks:
     console.log("⚠️ Meta fallback");
     return {
       title:          `${topic.product} Review India ${new Date().getFullYear()} — Worth Buying?`,
-      slug:           topic.product.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+      slug:           buildSeoSlug(topic.product),
       metaDescription:`${topic.product} review — worth ${topic.price} in India? Full specs, pros, cons & buying verdict.`,
       focusKeyword:   topic.keywords[0],
       tags:           topic.keywords
@@ -344,7 +433,7 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
   const postPayload = {
     title:          meta.title,
     content:        content,
-    slug:           meta.slug,
+    slug:           buildSeoSlug(topic.product),
     // Safety default: keep posts as drafts unless AUTO_PUBLISH=true is intentionally set.
     status:         postStatus,
     categories:     [categoryId],
@@ -367,11 +456,11 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
     postPayload.featured_media = featuredImageId;
   }
 
-  const res  = await fetch(`${WORDPRESS_URL}/wp-json/wp/v2/posts`, {
+  const res  = await retry(() => fetch(`${WORDPRESS_URL}/wp-json/wp/v2/posts`, {
     method:  "POST",
     headers: { "Authorization": `Basic ${auth}`, "Content-Type": "application/json" },
     body:    JSON.stringify(postPayload)
-  });
+  }), 3, "WordPress post publish");
 
   const post = await res.json();
   if (!res.ok) throw new Error(`WordPress error: ${JSON.stringify(post)}`);
@@ -399,6 +488,10 @@ async function main() {
 
   const topic = getTodaysTopic();
   console.log(`📦 Today: ${topic.product} (${topic.price})`);
+  if (isAlreadyPosted(topic.product)) {
+    console.log("⚠️ Already posted, skipping...");
+    return;
+  }
 
   // Step 1 — Fetch image
 const imageUrl = await fetchImage(topic.imageQuery);
@@ -415,6 +508,7 @@ const imageUrl = await fetchImage(topic.imageQuery);
 
   // Step 4 — Publish
   await publishToWordPress(topic, content, meta, uploadedImg?.id);
+  markPosted(topic.product);
 }
 
 main().catch(err => {
