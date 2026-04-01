@@ -14,6 +14,7 @@ const ANTHROPIC_KEY    = process.env.ANTHROPIC_API_KEY;
 const PEXELS_API_KEY   = process.env.PEXELS_API_KEY;
 const AFFILIATE_TAG    = "maruthiteja-21";
 const HISTORY_FILE     = "./posted.json";
+const SEO_YEAR         = 2026;
 
 // ── Add more topics here — script rotates daily ──
 const TOPICS = [
@@ -106,12 +107,19 @@ function markPosted(product) {
 }
 
 function buildSeoSlug(product) {
-  return `${product} review india ${new Date().getFullYear()}`
+  return `${product} review india ${SEO_YEAR}`
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]/g, "")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+function ensureTitleHasYear(title) {
+  const cleanTitle = (title || "").trim();
+  if (!cleanTitle) return "";
+  if (cleanTitle.includes(String(SEO_YEAR))) return cleanTitle;
+  return `${cleanTitle} (${SEO_YEAR})`;
 }
 
 async function retry(fn, retries = 3, label = "operation") {
@@ -395,12 +403,13 @@ Return ONLY raw JSON no markdown no backticks:
   const raw = await callClaude(prompt, 400);
   try {
     const meta = JSON.parse(raw.replace(/```json|```/g, "").trim());
+    meta.title = ensureTitleHasYear(meta.title);
     console.log(`✅ Meta — "${meta.title}"`);
     return meta;
   } catch {
     console.log("⚠️ Meta fallback");
     return {
-      title:          `${topic.product} Review India ${new Date().getFullYear()} — Worth Buying?`,
+      title:          `${topic.product} Review India ${SEO_YEAR} — Worth Buying?`,
       slug:           buildSeoSlug(topic.product),
       metaDescription:`${topic.product} review — worth ${topic.price} in India? Full specs, pros, cons & buying verdict.`,
       focusKeyword:   topic.keywords[0],
@@ -448,26 +457,25 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
   const auth       = Buffer.from(`${WP_USERNAME}:${WP_APP_PASS}`).toString("base64");
   const categoryId = await getCategoryId(auth, topic.category);
   const tagIds     = await getTagIds(auth, meta.tags);
-  const shouldAutoPublish = process.env.AUTO_PUBLISH === "true";
-  const postStatus = shouldAutoPublish ? "publish" : "draft";
+  const postStatus = "publish";
+  const postTitle = ensureTitleHasYear(meta.title) || `${topic.product} Review India ${SEO_YEAR} — Worth Buying?`;
 
   const postPayload = {
-    title:          meta.title,
+    title:          postTitle,
     content:        content,
     slug:           buildSeoSlug(topic.product),
-    // Safety default: keep posts as drafts unless AUTO_PUBLISH=true is intentionally set.
     status:         postStatus,
     categories:     [categoryId],
     tags:           tagIds,
     // Rank Math SEO fields
     meta: {
-      rank_math_title:             meta.title,
+      rank_math_title:             postTitle,
       rank_math_description:       meta.metaDescription,
       rank_math_focus_keyword:     meta.focusKeyword || topic.keywords[0],
       rank_math_robots:            ["index", "follow"],
-      rank_math_og_title:          meta.title,
+      rank_math_og_title:          postTitle,
       rank_math_og_description:    meta.metaDescription,
-      rank_math_twitter_title:     meta.title,
+      rank_math_twitter_title:     postTitle,
       rank_math_twitter_description: meta.metaDescription,
     }
   };
@@ -492,11 +500,7 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
   console.log(`🖼️  Featured img: ${featuredImageId ? "✅ Set" : "❌ Not set"}`);
   console.log(`🔍 Rank Math:    ✅ SEO fields set`);
   console.log(`✏️  Edit URL:     ${WORDPRESS_URL}/wp-admin/post.php?post=${post.id}&action=edit`);
-  if (postStatus === "draft") {
-    console.log(`\n👆 Review in WordPress → click Publish when ready!`);
-  } else {
-    console.log(`\n✅ Post was auto-published because AUTO_PUBLISH=true.`);
-  }
+  console.log(`\n✅ Post is published directly to WordPress.`);
   return post;
 }
 
