@@ -51,6 +51,27 @@ const TOPICS = [
     category:     "Tech Reviews",
     imageQuery:   "fitness band wrist activity tracker slim",
     keywords:     ["Mi Smart Band 8 review India", "best fitness band under 3000", "Xiaomi band 8 review"]
+  },
+  {
+    product:      "Samsung Galaxy M35 5G",
+    price:        "₹18,999",
+    category:     "Tech Reviews",
+    imageQuery:   "samsung smartphone product shot studio",
+    keywords:     ["Samsung Galaxy M35 5G review India", "best phone under 20000", "Galaxy M35 battery performance"]
+  },
+  {
+    product:      "Nothing Ear (a)",
+    price:        "₹7,999",
+    category:     "Tech Reviews",
+    imageQuery:   "wireless earbuds transparent case close up",
+    keywords:     ["Nothing Ear a review India", "best earbuds under 8000", "Nothing Ear a sound quality"]
+  },
+  {
+    product:      "ASUS Vivobook 15 OLED",
+    price:        "₹54,990",
+    category:     "Tech Reviews",
+    imageQuery:   "laptop on desk oled display workspace",
+    keywords:     ["ASUS Vivobook 15 OLED review India", "best laptop under 55000", "Vivobook OLED display battery life"]
   }
 ];
 
