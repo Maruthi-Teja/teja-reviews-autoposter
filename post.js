@@ -2,9 +2,9 @@ import fetch from "node-fetch";
 import fs from "fs";
 
 // ============================================
-// Teja Reviews — Claude Auto Poster v2
+// Teja Reviews — Claude Auto Poster v2 (FIXED)
 // Site: tejareviews.in | Affiliate: maruthiteja-21
-// Features: AI content + images + Rank Math SEO
+// Features: AI content + images + Rank Math SEO + Duplicate Prevention
 // ============================================
 
 const WORDPRESS_URL    = "https://tejareviews.in";
@@ -16,63 +16,249 @@ const AFFILIATE_TAG    = "maruthiteja-21";
 const HISTORY_FILE     = "./posted.json";
 const SEO_YEAR         = 2026;
 
-// ── Add more topics here — script rotates daily ──
+// ============================================
+// 33 TRENDING PRODUCTS (2026) — HIGH PRIORITY
+// ============================================
 const TOPICS = [
+  // High Volume + Moderate Competition (50K+/mo searches)
   {
-    product:      "OnePlus Nord Buds 4 Pro",
-    price:        "₹3,999",
-    category:     "Tech Reviews",
-    imageQuery:   "tws earbuds white product close up",
-    keywords:     ["OnePlus Nord Buds 4 Pro review India", "best earbuds under 4000", "OnePlus ANC earbuds 2026"]
+    product:      "Yoga Mats",
+    price:        "₹500–₹3,000",
+    category:     "Fitness & Wellness",
+    imageQuery:   "yoga mat studio high quality",
+    keywords:     ["yoga mat review India", "best yoga mat under 3000", "yoga mat thick eco-friendly"]
   },
   {
-    product:      "boAt Rockerz 550 Bluetooth Headphones",
-    price:        "₹1,499",
-    category:     "Tech Reviews",
-    imageQuery:   "over ear headphones black product",
-    keywords:     ["boAt Rockerz 550 review", "best headphones under 1500 India", "boAt wireless headphones"]
+    product:      "Acne Patches",
+    price:        "₹299–₹999",
+    category:     "Beauty & Skincare",
+    imageQuery:   "acne patches skincare treatment close up",
+    keywords:     ["acne patches India review", "best acne patches for cystic acne", "pimple patches 2026"]
   },
   {
-    product:      "Redmi Note 14 Pro",
-    price:        "₹25,999",
-    category:     "Tech Reviews",
-    imageQuery:   "android smartphone hand close up screen",
-    keywords:     ["Redmi Note 14 Pro review India", "best phone under 26000", "Redmi Note 14 Pro camera"]
+    product:      "Protein Powder",
+    price:        "₹800–₹2,500",
+    category:     "Nutrition & Fitness",
+    imageQuery:   "protein powder whey isolate container",
+    keywords:     ["best protein powder India", "whey protein powder under 2000", "protein powder review 2026"]
   },
   {
-    product:      "Realme Watch 3 Pro",
-    price:        "₹4,999",
-    category:     "Tech Reviews",
-    imageQuery:   "smartwatch wrist close up sport",
-    keywords:     ["Realme Watch 3 Pro review India", "best smartwatch under 5000", "Realme smartwatch 2026"]
+    product:      "Vitamin C Serum",
+    price:        "₹599–₹3,500",
+    category:     "Beauty & Skincare",
+    imageQuery:   "vitamin c serum amber bottle skincare",
+    keywords:     ["vitamin c serum India review", "best vitamin c serum for skin", "vitamin c serum benefits"]
   },
   {
-    product:      "Mi Smart Band 8",
-    price:        "₹2,499",
-    category:     "Tech Reviews",
-    imageQuery:   "fitness band wrist activity tracker slim",
-    keywords:     ["Mi Smart Band 8 review India", "best fitness band under 3000", "Xiaomi band 8 review"]
+    product:      "Bluetooth Headphones",
+    price:        "₹1,500–₹10,000",
+    category:     "Tech & Audio",
+    imageQuery:   "wireless bluetooth headphones over ear black",
+    keywords:     ["best bluetooth headphones India", "bluetooth headphones under 5000", "noise cancelling headphones"]
   },
   {
-    product:      "Samsung Galaxy M35 5G",
-    price:        "₹18,999",
-    category:     "Tech Reviews",
-    imageQuery:   "samsung smartphone product shot studio",
-    keywords:     ["Samsung Galaxy M35 5G review India", "best phone under 20000", "Galaxy M35 battery performance"]
+    product:      "Reusable Water Bottles",
+    price:        "₹400–₹2,000",
+    category:     "Lifestyle & Wellness",
+    imageQuery:   "insulated reusable water bottle steel",
+    keywords:     ["best water bottle India", "insulated water bottle under 2000", "eco-friendly water bottle"]
   },
   {
-    product:      "Nothing Ear (a)",
-    price:        "₹7,999",
-    category:     "Tech Reviews",
-    imageQuery:   "wireless earbuds transparent case close up",
-    keywords:     ["Nothing Ear a review India", "best earbuds under 8000", "Nothing Ear a sound quality"]
+    product:      "Wi-Fi Doorbell Cameras",
+    price:        "₹2,999–₹8,999",
+    category:     "Smart Home Tech",
+    imageQuery:   "smart wifi doorbell camera security",
+    keywords:     ["doorbell camera India review", "smart doorbell camera under 5000", "wifi doorbell security"]
   },
   {
-    product:      "ASUS Vivobook 15 OLED",
-    price:        "₹54,990",
-    category:     "Tech Reviews",
-    imageQuery:   "laptop on desk oled display workspace",
-    keywords:     ["ASUS Vivobook 15 OLED review India", "best laptop under 55000", "Vivobook OLED display battery life"]
+    product:      "Scalp Massagers",
+    price:        "₹500–₹2,500",
+    category:     "Wellness & Beauty",
+    imageQuery:   "electric scalp massager head relaxation",
+    keywords:     ["scalp massager review India", "best scalp massager for hair growth", "electric scalp massager"]
+  },
+  {
+    product:      "Under-Eye Patches",
+    price:        "₹199–₹1,500",
+    category:     "Beauty & Skincare",
+    imageQuery:   "under eye patches skincare puffiness",
+    keywords:     ["under eye patches India", "best eye patches for dark circles", "eye patches review"]
+  },
+  {
+    product:      "Home Décor Items",
+    price:        "₹299–₹5,000",
+    category:     "Home & Living",
+    imageQuery:   "modern home decor wall art pillow",
+    keywords:     ["home decor ideas India", "affordable home decor 2026", "home decor products online"]
+  },
+
+  // Medium Volume (20K–50K/mo) — Strong Seasonality
+  {
+    product:      "Blush Makeup",
+    price:        "₹599–₹2,000",
+    category:     "Beauty & Cosmetics",
+    imageQuery:   "liquid blush makeup cream tones",
+    keywords:     ["blush makeup India review", "best blush for Indian skin tone", "liquid blush 2026"]
+  },
+  {
+    product:      "Wrap Skirts",
+    price:        "₹799–₹3,000",
+    category:     "Women's Fashion",
+    imageQuery:   "wrap skirt boho style fashion casual",
+    keywords:     ["wrap skirt India online", "boho wrap skirt review", "best wrap skirt brands India"]
+  },
+  {
+    product:      "Insulated Tumblers",
+    price:        "₹1,200–₹3,500",
+    category:     "Home & Kitchen",
+    imageQuery:   "insulated tumbler travel coffee cup stainless",
+    keywords:     ["insulated tumbler India review", "best coffee tumbler under 3000", "vacuum tumbler 2026"]
+  },
+  {
+    product:      "Teeth Whitening Strips",
+    price:        "₹399–₹2,000",
+    category:     "Personal Care",
+    imageQuery:   "teeth whitening strips dental care smile",
+    keywords:     ["teeth whitening strips India", "best whitening strips safe", "teeth whitening review"]
+  },
+  {
+    product:      "Pet Supplies",
+    price:        "₹299–₹3,000",
+    category:     "Pets",
+    imageQuery:   "premium pet supplies toys treats food",
+    keywords:     ["pet supplies India online", "best pet food brands India", "dog treats review"]
+  },
+
+  // Niche/Emerging (5K–20K/mo) — HIGH MARGIN POTENTIAL
+  {
+    product:      "Gaming Headsets",
+    price:        "₹1,999–₹8,000",
+    category:     "Tech & Gaming",
+    imageQuery:   "gaming headset immersive sound rgb lights",
+    keywords:     ["gaming headset India review", "best gaming headset under 5000", "gaming headphones 2026"]
+  },
+  {
+    product:      "Ashwagandha Tea",
+    price:        "₹299–₹1,200",
+    category:     "Health & Wellness",
+    imageQuery:   "ashwagandha tea herbal wellness drink",
+    keywords:     ["ashwagandha tea India review", "best ashwagandha tea brand", "adaptogen tea benefits"]
+  },
+  {
+    product:      "Sauna Blankets",
+    price:        "₹8,000–₹25,000",
+    category:     "Home Wellness",
+    imageQuery:   "infrared sauna blanket relaxation wellness",
+    keywords:     ["sauna blanket India review", "infrared sauna blanket benefits", "sauna blanket 2026"]
+  },
+  {
+    product:      "Niacinamide Body Lotion",
+    price:        "₹399–₹1,500",
+    category:     "Beauty & Skincare",
+    imageQuery:   "niacinamide body lotion moisturizer bottle",
+    keywords:     ["niacinamide lotion review", "best body lotion with niacinamide", "niacinamide skincare India"]
+  },
+  {
+    product:      "Lash Cleansing Shampoo",
+    price:        "₹499–₹1,200",
+    category:     "Beauty & Haircare",
+    imageQuery:   "lash extension cleansing shampoo foam",
+    keywords:     ["lash shampoo India review", "lash extension cleanser", "eyelash cleansing products"]
+  },
+
+  // Viral/Trending Niches (< 5K/mo but RISING) — First-Mover Advantage
+  {
+    product:      "LEGO Sets",
+    price:        "₹1,500–₹15,000",
+    category:     "Toys & Hobbies",
+    imageQuery:   "lego sets building kits adult collection",
+    keywords:     ["LEGO sets India price", "best LEGO sets to buy", "LEGO collection 2026"]
+  },
+  {
+    product:      "Foldable Chairs",
+    price:        "₹1,500–₹8,000",
+    category:     "Outdoor & Patio",
+    imageQuery:   "foldable camping chair portable lightweight",
+    keywords:     ["foldable chair India review", "camping chair portable", "travel chair 2026"]
+  },
+  {
+    product:      "Camping Hammocks",
+    price:        "₹1,200–₹5,000",
+    category:     "Outdoor & Recreation",
+    imageQuery:   "camping hammock portable outdoor travel",
+    keywords:     ["camping hammock India review", "best hammock for camping", "portable hammock 2026"]
+  },
+  {
+    product:      "Eyebrow Lamination Kits",
+    price:        "₹799–₹3,000",
+    category:     "Beauty & DIY",
+    imageQuery:   "eyebrow lamination kit diy home",
+    keywords:     ["eyebrow lamination kit India", "DIY brow lamination", "eyebrow kit review"]
+  },
+  {
+    product:      "Weighted Sleep Sacks",
+    price:        "₹2,000–₹6,000",
+    category:     "Kids & Baby",
+    imageQuery:   "weighted sleep sack baby infant comfort",
+    keywords:     ["weighted sleep sack review", "baby sleep sack India", "infant sleep aid"]
+  },
+  {
+    product:      "Bamboo Baby Pajamas",
+    price:        "₹599–₹1,500",
+    category:     "Kids & Baby",
+    imageQuery:   "bamboo baby pajamas soft eco-friendly",
+    keywords:     ["bamboo baby pajamas India", "organic baby clothes", "eco-friendly baby wear"]
+  },
+  {
+    product:      "Wireless Charging Desk Mat",
+    price:        "₹1,299–₹5,000",
+    category:     "Office Tech",
+    imageQuery:   "wireless charging desk mat workspace",
+    keywords:     ["wireless charging pad India", "desk mat with charger", "office tech gadgets"]
+  },
+  {
+    product:      "Embroidered Apparel",
+    price:        "₹799–₹5,000",
+    category:     "Fashion & Accessories",
+    imageQuery:   "embroidered clothing custom tshirt design",
+    keywords:     ["embroidered tshirt India", "custom embroidered apparel", "personalized clothing"]
+  },
+  {
+    product:      "Sustainable Kitchen Ware",
+    price:        "₹199–₹2,000",
+    category:     "Home & Kitchen",
+    imageQuery:   "eco-friendly kitchen glass straw reusable",
+    keywords:     ["sustainable kitchen products India", "eco-friendly kitchenware", "glass straws review"]
+  },
+  {
+    product:      "Disposable Period Underwear",
+    price:        "₹899–₹2,500",
+    category:     "Feminine Care",
+    imageQuery:   "period underwear menstrual care wellness",
+    keywords:     ["period underwear India review", "menstrual underwear brands", "period care products"]
+  },
+
+  // Additional High-Opportunity Niches
+  {
+    product:      "Portable Ice Makers",
+    price:        "₹3,000–₹10,000",
+    category:     "Kitchen & Appliances",
+    imageQuery:   "portable ice maker machine automatic",
+    keywords:     ["portable ice maker India review", "best ice maker for home", "portable ice machine"]
+  },
+  {
+    product:      "Smart Light Bulbs",
+    price:        "₹799–₹2,500",
+    category:     "Smart Home Tech",
+    imageQuery:   "smart light bulb wifi rgb color",
+    keywords:     ["smart light bulbs India", "wifi light bulb review", "smart lighting 2026"]
+  },
+  {
+    product:      "Weighted Blankets",
+    price:        "₹2,500–₹8,000",
+    category:     "Sleep & Wellness",
+    imageQuery:   "weighted blanket sleep comfort cozy bed",
+    keywords:     ["weighted blanket India review", "best weighted blanket for sleep", "gravity blanket"]
   }
 ];
 
@@ -120,6 +306,34 @@ function ensureTitleHasYear(title) {
   if (!cleanTitle) return "";
   if (cleanTitle.includes(String(SEO_YEAR))) return cleanTitle;
   return `${cleanTitle} (${SEO_YEAR})`;
+}
+
+// ============================================
+// FIX #1: CHECK IF SLUG EXISTS IN WORDPRESS
+// ============================================
+async function slugExistsInWordPress(auth, slug) {
+  try {
+    console.log(`🔍 Checking if slug already exists: /${slug}/`);
+    const res = await fetch(`${WORDPRESS_URL}/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}&per_page=1`, {
+      headers: { "Authorization": `Basic ${auth}` }
+    });
+    
+    if (!res.ok) {
+      console.log(`⚠️  WordPress API error ${res.status} — skipping slug check`);
+      return false;
+    }
+
+    const posts = await res.json();
+    if (Array.isArray(posts) && posts.length > 0) {
+      console.log(`⚠️  Slug already exists! Post ID: ${posts[0].id}`);
+      return true;
+    }
+    console.log(`✅ Slug is unique`);
+    return false;
+  } catch (err) {
+    console.log(`⚠️  Slug check failed: ${err.message} — continuing anyway`);
+    return false;
+  }
 }
 
 async function retry(fn, retries = 3, label = "operation") {
@@ -173,18 +387,19 @@ async function callClaude(prompt, maxTokens = 2000) {
   throw new Error("Claude API retries exhausted");
 }
 
-// ── Helper: Pexels image retrieval ──
-async function fetchImageFromPexels(query) {
+// ============================================
+// FIX #2: IMPROVED PEXELS IMAGE FETCH
+// ============================================
+async function fetchImageFromPexels(imageQuery) {
   if (!PEXELS_API_KEY) return null;
 
-  console.log(`🖼️  Fetching image from Pexels: "${query}"...`);
+  console.log(`🖼️  Fetching from Pexels: "${imageQuery}"...`);
   try {
-    // Try landscape first, then any orientation
     const orientations = ["landscape", ""];
     for (const orientation of orientations) {
       const url = orientation
-        ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=${orientation}`
-        : `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5`;
+        ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(imageQuery)}&per_page=5&orientation=${orientation}`
+        : `https://api.pexels.com/v1/search?query=${encodeURIComponent(imageQuery)}&per_page=5`;
 
       const res = await fetch(url, {
         headers: { Authorization: PEXELS_API_KEY }
@@ -198,29 +413,35 @@ async function fetchImageFromPexels(query) {
 
       const data = await res.json();
       if (data.photos && data.photos.length > 0) {
-        // Pick the photo with highest width (best quality)
         const best = data.photos.sort((a, b) => b.width - a.width)[0];
         const imageUrl = best.src.large2x || best.src.large || best.src.medium;
         if (imageUrl) {
-          console.log(`✅ Pexels image: ${imageUrl}`);
+          console.log(`✅ Pexels found: ${imageUrl}`);
           return imageUrl;
         }
       }
     }
-    console.log("⚠️  Pexels returned no results");
+    console.log("⚠️  Pexels: no results");
   } catch (err) {
     console.log(`⚠️  Pexels error: ${err.message}`);
   }
   return null;
 }
 
-// ── Fetch image with Pexels first then Unsplash fallback ──
-async function fetchImage(query) {
+// ============================================
+// FIX #3: PROPER IMAGE FETCH WITH imageQuery
+// ============================================
+async function fetchImage(imageQuery) {
+  if (!imageQuery) {
+    console.log("⚠️  No imageQuery provided — using fallback");
+    imageQuery = "tech product review";
+  }
+
   const attempts = [
-    query,              // was topic object — now correctly a string
-    `${query} product`,
-    `${query} review`,
-    "tech gadget product"  // better generic fallback than "smartwatch fitness tracker"
+    imageQuery,              // Primary: use the passed imageQuery string directly
+    `${imageQuery} product`,
+    `${imageQuery} review`,
+    "tech gadget product"
   ];
 
   if (PEXELS_API_KEY) {
@@ -228,27 +449,26 @@ async function fetchImage(query) {
       const imageUrl = await fetchImageFromPexels(q);
       if (imageUrl) return imageUrl;
     }
-    console.log("⚠️  Pexels queries exhausted — falling back to Unsplash");
+    console.log("⚠️  Pexels exhausted — falling back to Unsplash");
   } else {
-    console.log("⚠️  PEXELS_API_KEY not set — skipping Pexels");
+    console.log("⚠️  PEXELS_API_KEY not set — using Unsplash fallback");
   }
 
-  const fallbackQuery = query || "smartwatch fitness tracker";
-  console.log(`🖼️  Fetching fallback image from Unsplash for: "${fallbackQuery}"...`);
-  const unsplashUrl = `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(fallbackQuery)}`;
+  console.log(`🖼️  Fetching from Unsplash: "${imageQuery}"...`);
+  const unsplashUrl = `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(imageQuery)}`;
 
   try {
     const res = await fetch(unsplashUrl, { method: "HEAD", redirect: "follow" });
     if (res.ok || res.status === 301 || res.redirected) {
-      console.log(`✅ Unsplash image available`);
+      console.log(`✅ Unsplash available`);
       return unsplashUrl;
     }
   } catch (err) {
-    console.log(`⚠️  Unsplash network error: ${err.message}`);
+    console.log(`⚠️  Unsplash error: ${err.message}`);
   }
 
-  console.log("⚠️  Unsplash fetch failed — using placeholder");
-  return `https://placehold.co/1200x600/1a1a2e/ffffff?text=${encodeURIComponent(fallbackQuery)}`;
+  console.log("⚠️  Using placeholder image");
+  return `https://placehold.co/1200x600/1a1a2e/ffffff?text=${encodeURIComponent(imageQuery)}`;
 }
 
 async function uploadImageToWP(auth, imageUrl, altText) {
@@ -377,15 +597,17 @@ Friendly honest tone. Indian audience. All prices in ₹. Minimum 800 words. Do 
 <div style="border:1px solid #ddd;padding:15px;border-radius:8px;margin:20px 0;">
 <strong>📑 Table of Contents</strong>
 <ul>
-<li>Quick Verdict</li>
-<li>Specifications</li>
-<li>Pros & Cons</li>
-<li>Final Verdict</li>
+<li><a href="#verdict">Quick Verdict</a></li>
+<li><a href="#specs">Specifications</a></li>
+<li><a href="#pros">What We Love</a></li>
+<li><a href="#cons">Things to Consider</a></li>
+<li><a href="#final">Final Verdict</a></li>
 </ul>
 </div>`;
   const internalLinks = `
-<p>Also check our other reviews:
-<a href="https://tejareviews.in/category/tech-reviews/">Latest Tech Reviews</a></p>
+<div style="background:#f9f9f9;padding:15px;border-radius:8px;margin:20px 0;">
+<p><strong>📚 More Reviews:</strong> Check out our <a href="https://tejareviews.in/category/tech-reviews/">latest tech reviews</a> for more product comparisons!</p>
+</div>
 `;
 
   const enhancedContent = `${toc}\n${text}\n${internalLinks}`;
@@ -451,10 +673,19 @@ async function getTagIds(auth, tags) {
   return ids;
 }
 
-// ── Publish to WordPress with Rank Math SEO ──
+// ============================================
+// FIX #1 INTEGRATION: CHECK SLUG BEFORE PUBLISH
+// ============================================
 async function publishToWordPress(topic, content, meta, featuredImageId) {
   console.log(`\n🚀 Publishing to tejareviews.in...`);
   const auth       = Buffer.from(`${WP_USERNAME}:${WP_APP_PASS}`).toString("base64");
+  
+  // Check if slug already exists (FIX #1)
+  const slug = buildSeoSlug(topic.product);
+  if (await slugExistsInWordPress(auth, slug)) {
+    throw new Error(`Slug /${slug}/ already exists in WordPress! Skipping to prevent duplicate.`);
+  }
+
   const categoryId = await getCategoryId(auth, topic.category);
   const tagIds     = await getTagIds(auth, meta.tags);
   const postStatus = "publish";
@@ -463,7 +694,7 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
   const postPayload = {
     title:          postTitle,
     content:        content,
-    slug:           buildSeoSlug(topic.product),
+    slug:           slug,
     status:         postStatus,
     categories:     [categoryId],
     tags:           tagIds,
@@ -506,20 +737,21 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
 
 // ── Main ──
 async function main() {
-  console.log("🤖 Teja Reviews — Claude Auto Poster v2");
-  console.log("=========================================");
+  console.log("🤖 Teja Reviews — Claude Auto Poster v2 (FIXED)");
+  console.log("=====================================================");
   if (!ANTHROPIC_KEY) throw new Error("Set ANTHROPIC_API_KEY environment variable");
   if (!WP_APP_PASS)   throw new Error("Set WP_APP_PASSWORD (or WP_PASS) environment variable");
 
   const topic = getTodaysTopic();
-  console.log(`📦 Today: ${topic.product} (${topic.price})`);
+  console.log(`📦 Today's topic: ${topic.product} (${topic.price})`);
+  
   if (isAlreadyPosted(topic.product)) {
-    console.log("⚠️ Already posted, skipping...");
+    console.log("⚠️ Already in local history, skipping...");
     return;
   }
 
-  // Step 1 — Fetch image
-const imageUrl = await fetchImage(topic.imageQuery);
+  // Step 1 — Fetch image (FIX #3: pass imageQuery string correctly)
+  const imageUrl = await fetchImage(topic.imageQuery);
 
   // Step 2 — Generate content + meta in parallel
   const [content, meta] = await Promise.all([
@@ -531,9 +763,11 @@ const imageUrl = await fetchImage(topic.imageQuery);
   const auth       = Buffer.from(`${WP_USERNAME}:${WP_APP_PASS}`).toString("base64");
   const uploadedImg = await uploadImageToWP(auth, imageUrl, topic.product);
 
-  // Step 4 — Publish
+  // Step 4 — Publish (includes FIX #1 slug check)
   await publishToWordPress(topic, content, meta, uploadedImg?.id);
   markPosted(topic.product);
+  
+  console.log("\n✅ Complete workflow finished successfully!");
 }
 
 main().catch(err => {
