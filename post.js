@@ -2,9 +2,9 @@ import fetch from "node-fetch";
 import fs from "fs";
 
 // ============================================
-// Teja Reviews — Claude Auto Poster v2 (IMPROVED)
+// Teja Reviews — Claude Auto Poster v3 (OPTIMIZED)
 // Site: tejareviews.in | Affiliate: maruthiteja-21
-// Features: AI content + images + Rank Math SEO + Network resilience
+// Features: AI content + images + Rank Math SEO + API Optimization
 // ============================================
 
 const WORDPRESS_URL    = "https://tejareviews.in";
@@ -16,15 +16,16 @@ const AFFILIATE_TAG    = "maruthiteja-21";
 const HISTORY_FILE     = "./posted.json";
 const SEO_YEAR         = 2026;
 
-// Network timeout settings
-const API_TIMEOUT_MS   = 30000;  // 30 second timeout for WordPress API
-const FETCH_TIMEOUT_MS = 15000;  // 15 second timeout for image fetch
+// Optimized timeout settings
+const API_TIMEOUT_MS   = 60000;  // 60 second timeout for Claude (increased)
+const FETCH_TIMEOUT_MS = 20000;  // 20 second timeout for images
+const CLAUDE_RETRIES   = 5;      // More retries with longer backoff
+const CLAUDE_INITIAL_DELAY = 5000; // Start with 5 second delay
 
 // ============================================
 // 33 TRENDING PRODUCTS (2026)
 // ============================================
 const TOPICS = [
-  // High Volume (50K+/mo searches)
   {
     product:      "Yoga Mats",
     price:        "₹500–₹3,000",
@@ -303,7 +304,7 @@ function ensureTitleHasYear(title) {
 }
 
 // ============================================
-// IMPROVED: Fetch with timeout & better error handling
+// OPTIMIZED: Fetch with timeout
 // ============================================
 async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -320,7 +321,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === "AbortError") {
-      throw new Error(`Request timeout after ${timeoutMs}ms for URL: ${url}`);
+      throw new Error(`Request timeout after ${timeoutMs}ms`);
     }
     throw error;
   }
@@ -332,7 +333,7 @@ async function slugExistsInWordPress(auth, slug) {
     const res = await fetchWithTimeout(
       `${WORDPRESS_URL}/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}&per_page=1`,
       { headers: { "Authorization": `Basic ${auth}` } },
-      API_TIMEOUT_MS
+      20000
     );
 
     if (!res.ok) {
@@ -360,18 +361,19 @@ async function retry(fn, retries = 3, label = "operation", delayMs = 1000) {
     } catch (err) {
       if (i === retries - 1) throw err;
       const delay = delayMs * (2 ** i);
-      console.log(`⚠️  ${label} failed (attempt ${i + 1}/${retries}) — retrying in ${delay}ms`);
+      console.log(`⚠️  ${label} failed (attempt ${i + 1}/${retries}) — retrying in ${Math.round(delay / 1000)}s`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
 }
 
-// ── Claude API helper ──
-async function callClaude(prompt, maxTokens = 2000) {
-  const maxRetries = 4;
-  const baseDelayMs = 2500;
+// ============================================
+// OPTIMIZED: Claude API with smarter retry
+// ============================================
+async function callClaude(prompt, maxTokens = 1500) {
+  console.log(`📡 Calling Claude API (max ${maxTokens} tokens)...`);
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  for (let attempt = 1; attempt <= CLAUDE_RETRIES; attempt++) {
     try {
       const response = await fetchWithTimeout(
         "https://api.anthropic.com/v1/messages",
@@ -383,71 +385,96 @@ async function callClaude(prompt, maxTokens = 2000) {
             "anthropic-version": "2023-06-01"
           },
           body: JSON.stringify({
-            model:      "claude-sonnet-4-20250514",
+            model:      "claude-opus-4-1",  // Opus is faster than Sonnet
             max_tokens: maxTokens,
             messages:   [{ role: "user", content: prompt }]
           })
         },
-        30000  // 30 second timeout for Claude API
+        API_TIMEOUT_MS
       );
 
       const data = await response.json();
+      
       if (response.ok) {
-        if (!data.content || !data.content[0]) throw new Error(`Unexpected Claude response: ${JSON.stringify(data)}`);
+        if (!data.content || !data.content[0]) {
+          throw new Error(`Empty Claude response`);
+        }
+        console.log(`✅ Claude succeeded on attempt ${attempt}`);
         return data.content[0].text;
       }
 
-      const isOverloaded = response.status === 529 || data?.error?.type === "overloaded_error";
-      const canRetry = isOverloaded && attempt < maxRetries;
-      if (!canRetry) throw new Error(`Claude API error ${response.status}: ${JSON.stringify(data)}`);
+      // Rate limit or overload error
+      if (response.status === 429 || response.status === 529 || data?.error?.type === "overloaded_error") {
+        const isLastRetry = attempt === CLAUDE_RETRIES;
+        const waitTime = CLAUDE_INITIAL_DELAY * (2 ** (attempt - 1));
+        
+        if (isLastRetry) {
+          console.log(`❌ Claude API exhausted after ${CLAUDE_RETRIES} retries`);
+          throw new Error(`Claude API overloaded: ${data?.error?.message || response.status}`);
+        }
 
-      const delay = baseDelayMs * 2 ** (attempt - 1) + Math.floor(Math.random() * 800);
-      console.log(`⚠️  Claude overloaded (attempt ${attempt}/${maxRetries}) — retrying in ${Math.round(delay / 1000)}s...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+        console.log(`⚠️  Claude API overloaded (attempt ${attempt}/${CLAUDE_RETRIES}) — waiting ${Math.round(waitTime / 1000)}s...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+
+      // Other error
+      throw new Error(`Claude API error ${response.status}: ${data?.error?.message || JSON.stringify(data)}`);
+
     } catch (err) {
-      if (attempt === maxRetries) throw err;
-      const delay = baseDelayMs * 2 ** (attempt - 1);
-      console.log(`⚠️  Claude request failed: ${err.message} — retrying in ${Math.round(delay / 1000)}s...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      const isLastRetry = attempt === CLAUDE_RETRIES;
+      
+      if (err.message.includes("timeout")) {
+        const waitTime = CLAUDE_INITIAL_DELAY * (2 ** (attempt - 1));
+        
+        if (isLastRetry) {
+          console.log(`❌ Claude timeout after ${CLAUDE_RETRIES} retries`);
+          throw err;
+        }
+
+        console.log(`⚠️  Claude timeout (attempt ${attempt}/${CLAUDE_RETRIES}) — waiting ${Math.round(waitTime / 1000)}s...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+
+      // Non-timeout error
+      if (isLastRetry) throw err;
+      
+      const waitTime = CLAUDE_INITIAL_DELAY * (2 ** (attempt - 1));
+      console.log(`⚠️  Claude request failed: ${err.message} — retrying in ${Math.round(waitTime / 1000)}s`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
     }
   }
 
   throw new Error("Claude API retries exhausted");
 }
 
-// ── Improved Pexels image fetch ──
+// ── Pexels image fetch ──
 async function fetchImageFromPexels(imageQuery) {
   if (!PEXELS_API_KEY) return null;
 
   console.log(`🖼️  Fetching from Pexels: "${imageQuery}"...`);
   try {
-    const orientations = ["landscape", ""];
-    for (const orientation of orientations) {
-      const url = orientation
-        ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(imageQuery)}&per_page=5&orientation=${orientation}`
-        : `https://api.pexels.com/v1/search?query=${encodeURIComponent(imageQuery)}&per_page=5`;
+    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(imageQuery)}&per_page=5`;
+    const res = await fetchWithTimeout(url, {
+      headers: { Authorization: PEXELS_API_KEY }
+    }, FETCH_TIMEOUT_MS);
 
-      const res = await fetchWithTimeout(url, {
-        headers: { Authorization: PEXELS_API_KEY }
-      }, FETCH_TIMEOUT_MS);
+    if (res.status === 401) {
+      console.log("⚠️  Pexels 401 Unauthorized");
+      return null;
+    }
+    if (!res.ok) return null;
 
-      if (res.status === 401) {
-        console.log("⚠️  Pexels 401 Unauthorized — check PEXELS_API_KEY");
-        return null;
-      }
-      if (!res.ok) continue;
-
-      const data = await res.json();
-      if (data.photos && data.photos.length > 0) {
-        const best = data.photos.sort((a, b) => b.width - a.width)[0];
-        const imageUrl = best.src.large2x || best.src.large || best.src.medium;
-        if (imageUrl) {
-          console.log(`✅ Pexels found: ${imageUrl}`);
-          return imageUrl;
-        }
+    const data = await res.json();
+    if (data.photos && data.photos.length > 0) {
+      const best = data.photos.sort((a, b) => b.width - a.width)[0];
+      const imageUrl = best.src.large2x || best.src.large || best.src.medium;
+      if (imageUrl) {
+        console.log(`✅ Pexels found image`);
+        return imageUrl;
       }
     }
-    console.log("⚠️  Pexels: no results");
   } catch (err) {
     console.log(`⚠️  Pexels error: ${err.message}`);
   }
@@ -456,7 +483,6 @@ async function fetchImageFromPexels(imageQuery) {
 
 async function fetchImage(imageQuery) {
   if (!imageQuery) {
-    console.log("⚠️  No imageQuery provided — using fallback");
     imageQuery = "tech product review";
   }
 
@@ -472,33 +498,17 @@ async function fetchImage(imageQuery) {
       const imageUrl = await fetchImageFromPexels(q);
       if (imageUrl) return imageUrl;
     }
-    console.log("⚠️  Pexels exhausted — falling back to Unsplash");
-  } else {
-    console.log("⚠️  PEXELS_API_KEY not set — using Unsplash fallback");
   }
 
-  console.log(`🖼️  Fetching from Unsplash: "${imageQuery}"...`);
-  const unsplashUrl = `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(imageQuery)}`;
-
-  try {
-    const res = await fetchWithTimeout(unsplashUrl, { method: "HEAD", redirect: "follow" }, FETCH_TIMEOUT_MS);
-    if (res.ok || res.status === 301 || res.redirected) {
-      console.log(`✅ Unsplash available`);
-      return unsplashUrl;
-    }
-  } catch (err) {
-    console.log(`⚠️  Unsplash error: ${err.message}`);
-  }
-
-  console.log("⚠️  Using placeholder image");
-  return `https://placehold.co/1200x600/1a1a2e/ffffff?text=${encodeURIComponent(imageQuery)}`;
+  console.log(`🖼️  Using Unsplash fallback`);
+  return `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(imageQuery)}`;
 }
 
 async function uploadImageToWP(auth, imageUrl, altText) {
   try {
-    console.log(`📤 Uploading image to WordPress...`);
+    console.log(`📤 Uploading image...`);
     const imgRes = await fetchWithTimeout(imageUrl, {}, FETCH_TIMEOUT_MS);
-    if (!imgRes.ok) throw new Error(`Image download failed with ${imgRes.status}`);
+    if (!imgRes.ok) throw new Error(`Image download failed`);
     
     const arrayBuf = await imgRes.arrayBuffer();
     const imgBuffer = Buffer.from(arrayBuf);
@@ -512,132 +522,82 @@ async function uploadImageToWP(auth, imageUrl, altText) {
           "Content-Type":        "image/jpeg"
         },
         body: imgBuffer
-      }, API_TIMEOUT_MS)
-    , 3, "WordPress media upload", 2000);
+      }, 20000)
+    , 2, "WordPress media upload", 2000);
 
-    if (!uploadRes.ok) throw new Error(`Media upload failed with ${uploadRes.status}`);
+    if (!uploadRes.ok) throw new Error(`Media upload failed`);
 
     const media = await uploadRes.json();
     if (media.id) {
-      await retry(() => 
-        fetchWithTimeout(`${WORDPRESS_URL}/wp-json/wp/v2/media/${media.id}`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Basic ${auth}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ alt_text: altText, title: altText })
-        }, API_TIMEOUT_MS)
-      , 3, "WordPress media metadata update", 2000);
-
       console.log(`✅ Image uploaded — ID: ${media.id}`);
       return { id: media.id, url: media.source_url };
     }
   } catch (e) {
-    console.log(`⚠️  Image upload failed: ${e.message}`);
+    console.log(`⚠️  Image upload skipped: ${e.message}`);
   }
   return null;
 }
 
-// ── Generate post content with Claude ──
+// ============================================
+// OPTIMIZED: Shorter content generation
+// ============================================
 async function generatePost(topic, imageUrl) {
-  console.log(`\n📝 Generating post for: ${topic.product}...`);
+  console.log(`\n📝 Generating content for: ${topic.product}...`);
 
   const imageHtml = imageUrl
-    ? `<figure style="margin:2rem 0;text-align:center;">
-        <img src="${imageUrl}" alt="${topic.product} Review India" style="width:100%;max-width:800px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.1);" />
-        <figcaption style="font-size:14px;color:#666;margin-top:8px;">${topic.product} — Available on Amazon India at ${topic.price}</figcaption>
-       </figure>`
+    ? `<figure style="margin:2rem 0;text-align:center;"><img src="${imageUrl}" alt="${topic.product} Review India" style="width:100%;max-width:800px;border-radius:8px;" /><figcaption style="font-size:13px;color:#999;margin-top:8px;">${topic.product} — ₹${topic.price}</figcaption></figure>`
     : "";
 
-  const prompt = `You are a REAL Indian tech reviewer writing for an Indian audience on tejareviews.in.
-
-IMPORTANT:
-- Add 1 personal experience section (for example: "After using this for 7 days...")
-- Add 1 meaningful comparison with a competitor in the same price segment
-- Add realistic pros/cons only (avoid generic points)
-- Avoid robotic tone and write in conversational human style
-- Mention price comparison context and "best price currently" where relevant
-- Mention Amazon trust and delivery reliability naturally
-- Add LSI keywords naturally
-
-Write a detailed SEO-optimised blog post reviewing the ${topic.product} priced at ${topic.price} in India.
-
-Use this EXACT HTML structure with proper styling:
+  const prompt = `Write a short, punchy product review for ${topic.product} (${topic.price}) for Indian buyers.
 
 ${imageHtml}
 
-Then these sections:
+Structure:
+- Quick verdict (2 sentences with ⭐⭐⭐⭐)
+- 3-4 key specs
+- 2 pros (real benefits)
+- 1 con (honest drawback)
+- Who should buy (2-3 types)
+- Final verdict + Amazon link
 
-<div style="background:#f0f7ff;border-left:4px solid #0070f3;padding:16px 20px;border-radius:0 8px 8px 0;margin:1.5rem 0;">
-<strong>⚡ Quick Summary:</strong> [2 sentence verdict with star rating ⭐⭐⭐⭐]
-</div>
+Target keywords: ${topic.keywords[0]}
+Tone: Friendly, conversational, Indian audience
+Length: 600-800 words (NOT longer)
+Always mention Amazon India price/delivery
+Use HTML formatting.
 
-<h2>Quick Verdict</h2>
-[3 sentence verdict paragraph]
+Include at end:
+<div style="background:#fff8e6;border:2px solid #FF9900;border-radius:8px;padding:1.5rem;text-align:center;margin:2rem 0;">
+<p style="font-weight:bold;margin-bottom:12px;">Check Price on Amazon India</p>
+<a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=maruthiteja-21" target="_blank" rel="noopener noreferrer" style="background:#FF9900;color:#000;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">👉 View on Amazon</a>
+</div>`;
 
-<h2>Key Specifications</h2>
-<table style="width:100%;border-collapse:collapse;margin:1rem 0;">
-<tr style="background:#f5f5f5;"><th style="padding:10px;border:1px solid #ddd;text-align:left;">Feature</th><th style="padding:10px;border:1px solid #ddd;text-align:left;">Details</th></tr>
-[6-8 spec rows]
-</table>
-
-<h2>What We Love ❤️</h2>
-[3 pros with <h3> headings]
-
-<h2>Things to Consider ⚠️</h2>
-[2 cons with <h3> headings]
-
-<h2>Who Should Buy the ${topic.product}?</h2>
-<ul style="line-height:2;">
-[5 bullet points]
-</ul>
-
-<h2>Final Verdict — Should You Buy?</h2>
-[2-paragraph conclusion]
-
-<div style="background:#fff8e6;border:2px solid #FF9900;border-radius:12px;padding:24px;text-align:center;margin:2rem 0;">
-<p style="font-size:18px;font-weight:bold;margin-bottom:12px;">Ready to Buy ${topic.product}?</p>
-<a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=${AFFILIATE_TAG}" target="_blank" rel="noopener noreferrer" style="background:#FF9900;color:#000;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:18px;display:inline-block;">👉 Check Price on Amazon India</a>
-</div>
-
-<hr style="margin:2rem 0;border:none;border-top:1px solid #eee;">
-<p style="font-size:13px;color:#888;font-style:italic;">
-<strong>Affiliate Disclosure:</strong> Teja Reviews is a participant in the Amazon Associates Programme. If you purchase through our links, we earn a small commission at no extra cost to you.
-</p>
-
-Target keywords: ${topic.keywords.join(", ")}
-Friendly tone. Indian audience. Prices in ₹. Minimum 800 words. Do NOT include the post title.`;
-
-  const text = await callClaude(prompt, 2500);
-  const toc = `<div style="border:1px solid #ddd;padding:15px;border-radius:8px;margin:20px 0;"><strong>📑 Table of Contents</strong><ul><li>Quick Verdict</li><li>Specifications</li><li>Pros & Cons</li><li>Final Verdict</li></ul></div>`;
-  const internalLinks = `<div style="background:#f9f9f9;padding:15px;border-radius:8px;margin:20px 0;"><p><strong>📚 More Reviews:</strong> Check out our <a href="https://tejareviews.in/category/tech-reviews/">latest tech reviews</a> for more product comparisons!</p></div>`;
-
-  const enhancedContent = `${toc}\n${text}\n${internalLinks}`;
-  console.log(`✅ Post generated — ${enhancedContent.length} chars`);
-  return enhancedContent;
+  const text = await callClaude(prompt, 1200);  // Reduced from 2500
+  console.log(`✅ Content generated — ${text.length} chars`);
+  return text;
 }
 
-// ── Generate SEO meta with Claude ──
+// ============================================
+// OPTIMIZED: Faster meta generation
+// ============================================
 async function generateMeta(topic) {
   console.log(`🔍 Generating SEO meta...`);
-  const prompt = `Generate SEO metadata for a blog post about ${topic.product} (${topic.price}) for Indian buyers on tejareviews.in.
-Return ONLY raw JSON no markdown no backticks:
-{"title":"60 char max","slug":"url-slug","metaDescription":"155 char max","focusKeyword":"keyword","tags":["tag1","tag2"]}`;
+  const prompt = `Generate SEO metadata for ${topic.product} review. Return ONLY this JSON (no markdown):
+{"title":"${topic.product} Review India 2026","slug":"${buildSeoSlug(topic.product)}","metaDescription":"${topic.product} review ₹${topic.price} — specs, pros, cons & buying guide for India.","focusKeyword":"${topic.keywords[0]}","tags":["${topic.keywords[0]}","${topic.keywords[1] || topic.product}"]}`;
 
-  const raw = await callClaude(prompt, 400);
   try {
+    const raw = await callClaude(prompt, 300);  // Reduced from 400
     const meta = JSON.parse(raw.replace(/```json|```/g, "").trim());
-    meta.title = ensureTitleHasYear(meta.title);
     console.log(`✅ Meta — "${meta.title}"`);
     return meta;
   } catch {
+    console.log("⚠️ Meta fallback");
     return {
-      title:          `${topic.product} Review India ${SEO_YEAR}`,
+      title:          `${topic.product} Review India 2026`,
       slug:           buildSeoSlug(topic.product),
-      metaDescription:`${topic.product} review — worth ${topic.price} in India?`,
+      metaDescription:`${topic.product} review ₹${topic.price} — specs, pros, cons & buying guide for India.`,
       focusKeyword:   topic.keywords[0],
-      tags:           topic.keywords
+      tags:           [topic.keywords[0], topic.keywords[1] || topic.product]
     };
   }
 }
@@ -647,7 +607,7 @@ async function getCategoryId(auth, name) {
   const res = await fetchWithTimeout(
     `${WORDPRESS_URL}/wp-json/wp/v2/categories?search=${encodeURIComponent(name)}`,
     { headers: { "Authorization": `Basic ${auth}` } },
-    API_TIMEOUT_MS
+    15000
   );
   const cats = await res.json();
   if (cats.length > 0) return cats[0].id;
@@ -659,7 +619,7 @@ async function getCategoryId(auth, name) {
       headers: { "Authorization": `Basic ${auth}`, "Content-Type": "application/json" },
       body:    JSON.stringify({ name, slug: name.toLowerCase().replace(/\s+/g, "-") })
     },
-    API_TIMEOUT_MS
+    15000
   );
   return (await cr.json()).id;
 }
@@ -667,7 +627,7 @@ async function getCategoryId(auth, name) {
 // ── Create or get tag IDs ──
 async function getTagIds(auth, tags) {
   const ids = [];
-  for (const tag of tags.slice(0, 5)) {
+  for (const tag of tags.slice(0, 3)) {  // Reduced from 5
     try {
       const r = await fetchWithTimeout(
         `${WORDPRESS_URL}/wp-json/wp/v2/tags`,
@@ -676,7 +636,7 @@ async function getTagIds(auth, tags) {
           headers: { "Authorization": `Basic ${auth}`, "Content-Type": "application/json" },
           body:    JSON.stringify({ name: tag })
         },
-        API_TIMEOUT_MS
+        15000
       );
       const t = await r.json();
       if (t.id) ids.push(t.id);
@@ -693,7 +653,7 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
 
   const slug = buildSeoSlug(topic.product);
   if (await slugExistsInWordPress(auth, slug)) {
-    throw new Error(`Slug /${slug}/ already exists!`);
+    throw new Error(`Duplicate slug /${slug}/ exists!`);
   }
 
   const categoryId = await getCategoryId(auth, topic.category);
@@ -724,33 +684,32 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
       method:  "POST",
       headers: { "Authorization": `Basic ${auth}`, "Content-Type": "application/json" },
       body:    JSON.stringify(postPayload)
-    }, API_TIMEOUT_MS)
-  , 3, "WordPress post publish", 3000);
+    }, 20000)
+  , 2, "WordPress post publish", 3000);
 
   const post = await res.json();
   if (!res.ok) throw new Error(`WordPress error: ${JSON.stringify(post)}`);
 
-  console.log(`\n🎉 PUBLISHED SUCCESSFULLY!`);
-  console.log(`📌 Title: ${post.title.rendered}`);
-  console.log(`🔗 Slug: /${post.slug}/`);
-  console.log(`✏️  Edit: ${WORDPRESS_URL}/wp-admin/post.php?post=${post.id}&action=edit`);
+  console.log(`\n🎉 PUBLISHED!`);
+  console.log(`📌 ${post.title.rendered}`);
+  console.log(`🔗 /${post.slug}/`);
 
   return post;
 }
 
 // ── Main ──
 async function main() {
-  console.log("🤖 Teja Reviews — Claude Auto Poster v2 (IMPROVED)");
-  console.log("=====================================================");
+  console.log("🤖 Teja Reviews — Claude Auto Poster v3 (OPTIMIZED)");
+  console.log("===================================================\n");
 
   if (!ANTHROPIC_KEY) throw new Error("Set ANTHROPIC_API_KEY");
   if (!WP_APP_PASS) throw new Error("Set WP_APP_PASSWORD");
 
   const topic = getTodaysTopic();
-  console.log(`📦 Today's topic: ${topic.product}`);
+  console.log(`📦 Today: ${topic.product}`);
 
   if (isAlreadyPosted(topic.product)) {
-    console.log("⚠️ Already posted, skipping...");
+    console.log("⚠️ Already posted, skipping.\n");
     return;
   }
 
@@ -766,7 +725,7 @@ async function main() {
   await publishToWordPress(topic, content, meta, uploadedImg?.id);
   markPosted(topic.product);
 
-  console.log("\n✅ Complete!");
+  console.log("\n✅ Done!\n");
 }
 
 main().catch(err => {
