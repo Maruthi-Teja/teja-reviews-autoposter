@@ -582,12 +582,17 @@ Include at end:
 // ============================================
 async function generateMeta(topic) {
   console.log(`🔍 Generating SEO meta...`);
-  const prompt = `Generate SEO metadata for ${topic.product} review. Return ONLY this JSON (no markdown):
-{"title":"${topic.product} Review India 2026","slug":"${buildSeoSlug(topic.product)}","metaDescription":"${topic.product} review ₹${topic.price} — specs, pros, cons & buying guide for India.","focusKeyword":"${topic.keywords[0]}","tags":["${topic.keywords[0]}","${topic.keywords[1] || topic.product}"]}`;
+  const prompt = `Generate SEO metadata for ${topic.product} review published in 2026. Return ONLY this JSON (no markdown, no 2024):
+{"title":"${topic.product} Review India 2026","slug":"${buildSeoSlug(topic.product)}","metaDescription":"${topic.product} review ₹${topic.price} — specs, pros, cons & buying guide for India 2026.","focusKeyword":"${topic.keywords[0]}","tags":["${topic.keywords[0]}","${topic.keywords[1] || topic.product}"]}`;
 
   try {
-    const raw = await callClaude(prompt, 300);  // Reduced from 400
+    const raw = await callClaude(prompt, 300);
     const meta = JSON.parse(raw.replace(/```json|```/g, "").trim());
+    
+    // CRITICAL: Force 2026 in title if Claude added 2024
+    meta.title = meta.title.replace(/2024/g, "2026").trim();
+    meta.metaDescription = meta.metaDescription.replace(/2024/g, "2026").trim();
+    
     console.log(`✅ Meta — "${meta.title}"`);
     return meta;
   } catch {
@@ -595,7 +600,7 @@ async function generateMeta(topic) {
     return {
       title:          `${topic.product} Review India 2026`,
       slug:           buildSeoSlug(topic.product),
-      metaDescription:`${topic.product} review ₹${topic.price} — specs, pros, cons & buying guide for India.`,
+      metaDescription:`${topic.product} review ₹${topic.price} — specs, pros, cons & buying guide for India 2026.`,
       focusKeyword:   topic.keywords[0],
       tags:           [topic.keywords[0], topic.keywords[1] || topic.product]
     };
