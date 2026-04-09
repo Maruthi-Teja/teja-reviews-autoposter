@@ -592,6 +592,8 @@ Rules:
 - Mention whether it is suitable for Indian weather, homes, offices or travel.
 - The article must end with a complete sentence and a complete Final Verdict section.
 - Do not leave incomplete sentences.
+- Always finish the article with a complete final sentence.
+- End the Final Verdict with a sentence about Amazon India and Flipkart availability or returns.
 
 Article Structure:
 
@@ -607,9 +609,11 @@ Create an HTML table with:
 - Compatibility
 - Best For
 
-After the specifications table, include two buttons:
-- Check Price on Amazon India
-- Check Price on Flipkart
+ After the specifications table, include two clickable HTML links using these exact URLs:
+
+<a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=maruthiteja-21" target="_blank" rel="noopener noreferrer">Check Price on Amazon India</a>
+
+<a href="https://www.flipkart.com/search?q=${encodeURIComponent(topic.product)}" target="_blank" rel="noopener noreferrer">Check Price on Flipkart</a>
 
 <h2>Design and Build Quality</h2>
 
@@ -618,10 +622,14 @@ After the specifications table, include two buttons:
 <h2>Pros and Cons</h2>
 Use bullet points.
 
+If there is any safety concern (such as magnetic interference, heat, pacemakers, or compatibility issues), add a small highlighted Safety Note box in HTML after the cons list.
+
 <h2>Who Should Buy ${topic.product}?</h2>
 
 <h3>Perfect For</h3>
 Use bullet points.
+
+
 
 <h3>Skip If</h3>
 Use bullet points
@@ -638,6 +646,8 @@ ${amazonBox}
 
   content += `
 <div style="background:#fff8e6;border:2px solid #FF9900;border-radius:8px;padding:1rem;text-align:center;margin:1.5rem 0;">
+  <p style="font-weight:bold;margin-bottom:10px;">Compare Prices in India</p>
+
   <a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=maruthiteja-21"
      target="_blank"
      rel="noopener noreferrer"
@@ -645,7 +655,7 @@ ${amazonBox}
      Check Price on Amazon
   </a>
 
-  <a href="https://www.flipkart.com/search?q=${encodeURIComponent(topic.product)}"
+  <a href="https://www.flipkart.com/search?q=${encodeURIComponent(topic.product)}&affid=maruthiteja"
      target="_blank"
      rel="noopener noreferrer"
      style="background:#2874F0;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">
