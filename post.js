@@ -541,70 +541,139 @@ async function uploadImageToWP(auth, imageUrl, altText) {
 // ============================================
 // OPTIMIZED: Shorter content generation
 // ============================================
+// Replace your current generatePost() function with this
+
 async function generatePost(topic, imageUrl) {
   console.log(`\n📝 Generating content for: ${topic.product}...`);
 
   const imageHtml = imageUrl
-    ? `<figure style="margin:2rem 0;text-align:center;"><img src="${imageUrl}" alt="${topic.product} Review India" style="width:100%;max-width:800px;border-radius:8px;" /><figcaption style="font-size:13px;color:#999;margin-top:8px;">${topic.product} — ₹${topic.price}</figcaption></figure>`
+    ? `<figure style="margin:2rem 0;text-align:center;">
+        <img src="${imageUrl}" alt="${topic.product} Review India" style="width:100%;max-width:800px;border-radius:8px;" />
+        <figcaption style="font-size:13px;color:#999;margin-top:8px;">
+          ${topic.product} — ${topic.price}
+        </figcaption>
+      </figure>`
     : "";
 
-  const prompt = `Write a short, punchy product review for ${topic.product} (${topic.price}) for Indian buyers.
+  const amazonBox = `
+  <div style="background:#fff8e6;border:2px solid #FF9900;border-radius:8px;padding:1.5rem;text-align:center;margin:2rem 0;">
+    <p style="font-weight:bold;margin-bottom:12px;">Check Latest Price on Amazon India</p>
+    <a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=maruthiteja-21"
+       target="_blank"
+       rel="noopener noreferrer"
+       style="background:#FF9900;color:#000;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">
+       👉 View on Amazon
+    </a>
+  </div>`;
+
+  const prompt = `
+You are writing an SEO-friendly product review for Indian buyers.
+
+Topic: ${topic.product}
+Primary keyword: ${topic.keywords[0]}
+Secondary keyword: ${topic.keywords[1] || ""}
+Price Range: ${topic.price}
+Year: 2026
+
+Rules:
+- Write naturally, not like AI-generated filler.
+- Mention whether the product is worth buying in India in 2026.
+- Mention practical real-world use cases.
+- Use short paragraphs.
+- Use only HTML.
+- Include headings with h2 and h3 tags.
+- Mention approximate Amazon India pricing.
+- Keep article length between 900 and 1200 words.
+- Mention whether the product is available on Amazon India or Flipkart.
+- Mention if the pricing is good for Indian buyers.
+- Compare value with other popular products available in India.
+- Use Indian English.
+- Mention delivery, warranty or availability in India if relevant.
+
+Article Structure:
+
+<h2>Quick Verdict</h2>
+Write 2–3 short sentences and include a star rating.
 
 ${imageHtml}
 
-Structure:
-- Quick verdict (2 sentences with ⭐⭐⭐⭐)
-- 3-4 key specs
-- 2 pros (real benefits)
-- 1 con (honest drawback)
-- Who should buy (2-3 types)
-- Final verdict + Amazon link
+<h2>Key Specifications</h2>
+Create an HTML table with:
+- Price
+- Main Features
+- Compatibility
+- Best For
 
-Target keywords: ${topic.keywords[0]}
-Tone: Friendly, conversational, Indian audience
-Length: 600-800 words (NOT longer)
-Always mention Amazon India price/delivery
-Use HTML formatting.
+<h2>Design and Build Quality</h2>
 
-Include at end:
-<div style="background:#fff8e6;border:2px solid #FF9900;border-radius:8px;padding:1.5rem;text-align:center;margin:2rem 0;">
-<p style="font-weight:bold;margin-bottom:12px;">Check Price on Amazon India</p>
-<a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=maruthiteja-21" target="_blank" rel="noopener noreferrer" style="background:#FF9900;color:#000;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">👉 View on Amazon</a>
-</div>`;
+<h2>Performance and Daily Usage</h2>
 
-  const text = await callClaude(prompt, 1200);  // Reduced from 2500
-  console.log(`✅ Content generated — ${text.length} chars`);
-  return text;
+<h2>Pros and Cons</h2>
+Use bullet points.
+
+<h2>Who Should Buy ${topic.product}?</h2>
+
+<h2>Final Verdict</h2>
+Explain whether it is worth buying for Indian users in 2026, considering Indian pricing, availability and value for money.
+
+At the end, include exactly this Amazon button:
+
+${amazonBox}
+`;
+
+  let content = await callClaude(prompt, 1800);
+
+  // Add related links at end
+  content += `
+  <hr>
+  <h3>Related Articles</h3>
+  <ul>
+    <li><a href="/category/${topic.category.toLowerCase().replace(/\s+/g, "-")}/">More ${topic.category} Reviews</a></li>
+    <li><a href="/">Latest Reviews on Teja Reviews</a></li>
+  </ul>`;
+
+  // Add FAQ schema
+  content += `
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is ${topic.product} worth buying in India in 2026?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "${topic.product} is worth considering for Indian buyers because it offers good value for its price range and useful features."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the price of ${topic.product} in India?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The approximate price range of ${topic.product} in India is ${topic.price}."
+        }
+      }
+    ]
+  }
+  </script>`;
+
+  console.log(`✅ Content generated — ${content.length} chars`);
+  return content;
 }
 
 // ============================================
 // OPTIMIZED: Faster meta generation
 // ============================================
 async function generateMeta(topic) {
-  console.log(`🔍 Generating SEO meta...`);
-  const prompt = `Generate SEO metadata for ${topic.product} review published in 2026. Return ONLY this JSON (no markdown, no 2024):
-{"title":"${topic.product} Review India 2026","slug":"${buildSeoSlug(topic.product)}","metaDescription":"${topic.product} review ₹${topic.price} — specs, pros, cons & buying guide for India 2026.","focusKeyword":"${topic.keywords[0]}","tags":["${topic.keywords[0]}","${topic.keywords[1] || topic.product}"]}`;
-
-  try {
-    const raw = await callClaude(prompt, 300);
-    const meta = JSON.parse(raw.replace(/```json|```/g, "").trim());
-    
-    // CRITICAL: Force 2026 in title if Claude added 2024
-    meta.title = meta.title.replace(/2024/g, "2026").trim();
-    meta.metaDescription = meta.metaDescription.replace(/2024/g, "2026").trim();
-    
-    console.log(`✅ Meta — "${meta.title}"`);
-    return meta;
-  } catch {
-    console.log("⚠️ Meta fallback");
-    return {
-      title:          `${topic.product} Review India 2026`,
-      slug:           buildSeoSlug(topic.product),
-      metaDescription:`${topic.product} review ₹${topic.price} — specs, pros, cons & buying guide for India 2026.`,
-      focusKeyword:   topic.keywords[0],
-      tags:           [topic.keywords[0], topic.keywords[1] || topic.product]
-    };
-  }
+  return {
+    title: `${topic.product} Review India 2026: Worth Buying?`,
+    slug: buildSeoSlug(topic.product),
+    metaDescription: `${topic.product} review India 2026. Check price, features, pros, cons and whether it is worth buying in India.`,
+    focusKeyword: topic.keywords[0],
+    tags: [topic.keywords[0], topic.keywords[1] || topic.product]
+  };
 }
 
 // ── Get or create WordPress category ──
