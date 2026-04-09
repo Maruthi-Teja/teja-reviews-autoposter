@@ -594,12 +594,14 @@ Rules:
 - Do not leave incomplete sentences.
 - Always finish the article with a complete final sentence.
 - End the Final Verdict with a sentence about Amazon India and Flipkart availability or returns.
+- Do not leave any section incomplete.
+- Every bullet list must have at least 3 items.
+- Always include both "Perfect For" and "Skip If".
 
 Article Structure:
 
 <h2>Quick Verdict</h2>
-Write 2–3 short sentences and include a star rating.
-
+Write 2–3 short sentences and include a realistic rating between 4/5 and 4.5/5 unless the product is genuinely poor.
 ${imageHtml}
 
 <h2>Key Specifications</h2>
@@ -626,13 +628,21 @@ If there is any safety concern (such as magnetic interference, heat, pacemakers,
 
 <h2>Who Should Buy ${topic.product}?</h2>
 
+You MUST include both sections below exactly in this format:
+
 <h3>Perfect For</h3>
-Use bullet points.
-
-
+<ul>
+<li>People who want a cleaner desk setup</li>
+<li>Office users who charge their phone daily</li>
+<li>Anyone with a clutter-free aesthetic in mind</li>
+</ul>
 
 <h3>Skip If</h3>
-Use bullet points
+<ul>
+<li>Users who need very fast charging speeds</li>
+<li>People with older phones that do not support wireless charging</li>
+<li>Anyone who uses magnetic cards or medical devices near their desk</li>
+</ul>
 
 <h2>Final Verdict</h2>
 Explain whether it is worth buying for Indian users in 2026, considering Indian pricing, availability and value for money.
