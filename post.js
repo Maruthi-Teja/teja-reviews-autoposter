@@ -589,6 +589,9 @@ Rules:
 - Compare value with other popular products available in India.
 - Use Indian English.
 - Mention delivery, warranty or availability in India if relevant.
+- Mention whether it is suitable for Indian weather, homes, offices or travel.
+- The article must end with a complete sentence and a complete Final Verdict section.
+- Do not leave incomplete sentences.
 
 Article Structure:
 
@@ -604,6 +607,10 @@ Create an HTML table with:
 - Compatibility
 - Best For
 
+After the specifications table, include two buttons:
+- Check Price on Amazon India
+- Check Price on Flipkart
+
 <h2>Design and Build Quality</h2>
 
 <h2>Performance and Daily Usage</h2>
@@ -612,6 +619,12 @@ Create an HTML table with:
 Use bullet points.
 
 <h2>Who Should Buy ${topic.product}?</h2>
+
+<h3>Perfect For</h3>
+Use bullet points.
+
+<h3>Skip If</h3>
+Use bullet points
 
 <h2>Final Verdict</h2>
 Explain whether it is worth buying for Indian users in 2026, considering Indian pricing, availability and value for money.
@@ -622,6 +635,23 @@ ${amazonBox}
 `;
 
   let content = await callClaude(prompt, 1800);
+
+  content += `
+<div style="background:#fff8e6;border:2px solid #FF9900;border-radius:8px;padding:1rem;text-align:center;margin:1.5rem 0;">
+  <a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=maruthiteja-21"
+     target="_blank"
+     rel="noopener noreferrer"
+     style="background:#FF9900;color:#000;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;margin-right:10px;">
+     Check Price on Amazon
+  </a>
+
+  <a href="https://www.flipkart.com/search?q=${encodeURIComponent(topic.product)}"
+     target="_blank"
+     rel="noopener noreferrer"
+     style="background:#2874F0;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">
+     Check Price on Flipkart
+  </a>
+</div>`;
 
   // Add related links at end
   content += `
