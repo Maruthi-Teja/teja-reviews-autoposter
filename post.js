@@ -610,12 +610,24 @@ Create an HTML table with:
 - Main Features
 - Compatibility
 - Best For
+After the specifications table, include this exact HTML block:
 
- After the specifications table, include two clickable HTML links using these exact URLs:
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin:1rem 0 1.5rem 0;">
+  <a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=maruthiteja-21"
+     target="_blank"
+     rel="noopener noreferrer"
+     style="background:#FF9900;color:#000;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">
+     Check Price on Amazon India
+  </a>
 
-<a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=maruthiteja-21" target="_blank" rel="noopener noreferrer">Check Price on Amazon India</a>
+  <a href="https://www.flipkart.com/search?q=${encodeURIComponent(topic.product)}"
+     target="_blank"
+     rel="noopener noreferrer"
+     style="background:#2874F0;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">
+     Check Price on Flipkart
+  </a>
+</div>
 
-<a href="https://www.flipkart.com/search?q=${encodeURIComponent(topic.product)}" target="_blank" rel="noopener noreferrer">Check Price on Flipkart</a>
 
 <h2>Design and Build Quality</h2>
 
