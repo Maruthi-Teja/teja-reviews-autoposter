@@ -370,8 +370,8 @@ async function retry(fn, retries = 3, label = "operation", delayMs = 1000) {
 // ============================================
 // OPTIMIZED: Claude API with smarter retry
 // ============================================
-async function callClaude(prompt, maxTokens = 1500) {
-  console.log(`📡 Calling Claude API (max ${maxTokens} tokens)...`);
+async function callClaude(systemPrompt, userPrompt, maxTokens = 1500) {
+  console.log(`📡 Calling Claude API (Sonnet with caching)...`);
 
   for (let attempt = 1; attempt <= CLAUDE_RETRIES; attempt++) {
     try {
@@ -380,47 +380,35 @@ async function callClaude(prompt, maxTokens = 1500) {
         {
           method: "POST",
           headers: {
-            "Content-Type":      "application/json",
-            "x-api-key":         ANTHROPIC_KEY,
-            "anthropic-version": "2023-06-01"
+            "Content-Type": "application/json",
+            "x-api-key": ANTHROPIC_KEY,
+            "anthropic-version": "2023-06-01",
+            "anthropic-beta": "prompt-caching-2024-07-31" // REQUIRED FOR CACHING
           },
           body: JSON.stringify({
-            model:      "claude-opus-4-1",  // Opus is faster than Sonnet
+            model: "claude-3-5-sonnet-latest", // Much faster and cheaper than Opus
             max_tokens: maxTokens,
-            messages:   [{ role: "user", content: prompt }]
+            system: [
+              {
+                type: "text",
+                text: systemPrompt,
+                cache_control: { type: "ephemeral" } // Caches the heavy SEO rules
+              }
+            ],
+            messages: [{ role: "user", content: userPrompt }]
           })
         },
         API_TIMEOUT_MS
       );
 
       const data = await response.json();
-      
-      if (response.ok) {
-        if (!data.content || !data.content[0]) {
-          throw new Error(`Empty Claude response`);
-        }
-        console.log(`✅ Claude succeeded on attempt ${attempt}`);
+      if (response.ok && data.content && data.content[0]) {
+        console.log(`✅ Claude succeeded. Input tokens: ${data.usage.input_tokens} (Cached: ${data.usage.cache_read_input_tokens || 0})`);
         return data.content[0].text;
       }
-
-      // Rate limit or overload error
-      if (response.status === 429 || response.status === 529 || data?.error?.type === "overloaded_error") {
-        const isLastRetry = attempt === CLAUDE_RETRIES;
-        const waitTime = CLAUDE_INITIAL_DELAY * (2 ** (attempt - 1));
-        
-        if (isLastRetry) {
-          console.log(`❌ Claude API exhausted after ${CLAUDE_RETRIES} retries`);
-          throw new Error(`Claude API overloaded: ${data?.error?.message || response.status}`);
-        }
-
-        console.log(`⚠️  Claude API overloaded (attempt ${attempt}/${CLAUDE_RETRIES}) — waiting ${Math.round(waitTime / 1000)}s...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        continue;
-      }
-
-      // Other error
-      throw new Error(`Claude API error ${response.status}: ${data?.error?.message || JSON.stringify(data)}`);
-
+      
+      if (response.status === 429 || response.status === 529) throw new Error("Overloaded");
+      throw new Error(`API Error: ${JSON.stringify(data)}`);
     } catch (err) {
       const isLastRetry = attempt === CLAUDE_RETRIES;
       
@@ -543,186 +531,97 @@ async function uploadImageToWP(auth, imageUrl, altText) {
 // ============================================
 // Replace your current generatePost() function with this
 
+/**
+ * Optimized GeneratePost: 
+ * Uses Prompt Caching to keep instructions in memory (reducing costs/latency).
+ * Uses parallel data blocks for cleaner HTML injection.
+ */
 async function generatePost(topic, imageUrl) {
   console.log(`\n📝 Generating content for: ${topic.product}...`);
 
-  const imageHtml = imageUrl
-    ? `<figure style="margin:2rem 0;text-align:center;">
-        <img src="${imageUrl}" alt="${topic.product} Review India" style="width:100%;max-width:800px;border-radius:8px;" />
-        <figcaption style="font-size:13px;color:#999;margin-top:8px;">
-          ${topic.product} — ${topic.price}
-        </figcaption>
-      </figure>`
-    : "";
+  // 1. Define the HEAVY static instructions (This is what gets cached)
+  const systemPrompt = `You are an expert SEO content writer for Teja Reviews (tejareviews.in).
+Your goal is to write a high-converting, helpful product review for Indian buyers in 2026.
 
-  const amazonBox = `
-  <div style="background:#fff8e6;border:2px solid #FF9900;border-radius:8px;padding:1.5rem;text-align:center;margin:2rem 0;">
-    <p style="font-weight:bold;margin-bottom:12px;">Check Latest Price on Amazon India</p>
-    <a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=maruthiteja-21"
-       target="_blank"
-       rel="noopener noreferrer"
-       style="background:#FF9900;color:#000;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">
-       👉 View on Amazon
-    </a>
-  </div>`;
+RULES:
+- Use Indian English and reference Indian context (weather, homes, offices).
+- Tone: Professional yet conversational (fan-first).
+- Format: Strictly use HTML (h2, h3, p, ul, li). No markdown.
+- Length: 900–1200 words.
+- Comparison: Compare value with other popular products in India.
+- Structure:
+  1. Quick Verdict (with rating)
+  2. Key Specifications (HTML Table)
+  3. Design & Build Quality
+  4. Performance & Daily Usage
+  5. Pros and Cons
+  6. Who Should Buy? (Perfect For / Skip If)
+  7. Final Verdict (Availability on Amazon/Flipkart)`;
 
-  const prompt = `
-You are writing an SEO-friendly product review for Indian buyers.
-
-Topic: ${topic.product}
-Primary keyword: ${topic.keywords[0]}
-Secondary keyword: ${topic.keywords[1] || ""}
+  // 2. Define the dynamic data for THIS specific run
+  const userPrompt = `Review the following product:
+Product: ${topic.product}
+Primary Keyword: ${topic.keywords[0]}
+Secondary Keyword: ${topic.keywords[1] || ""}
 Price Range: ${topic.price}
-Year: 2026
+Year: ${SEO_YEAR}
 
-Rules:
-- Write naturally, not like AI-generated filler.
-- Mention whether the product is worth buying in India in 2026.
-- Mention practical real-world use cases.
-- Use short paragraphs.
-- Use only HTML.
-- Include headings with h2 and h3 tags.
-- Mention approximate Amazon India pricing.
-- Keep article length between 900 and 1200 words.
-- Mention whether the product is available on Amazon India or Flipkart.
-- Mention if the pricing is good for Indian buyers.
-- Compare value with other popular products available in India.
-- Use Indian English.
-- Mention delivery, warranty or availability in India if relevant.
-- Mention whether it is suitable for Indian weather, homes, offices or travel.
-- The article must end with a complete sentence and a complete Final Verdict section.
-- Do not leave incomplete sentences.
-- Always finish the article with a complete final sentence.
-- End the Final Verdict with a sentence about Amazon India and Flipkart availability or returns.
-- Do not leave any section incomplete.
-- Every bullet list must have at least 3 items.
-- Always include both "Perfect For" and "Skip If".
+Include these affiliate details:
+- Amazon Tag: ${AFFILIATE_TAG}
+- Pexels Image URL: ${imageUrl || "None"}
 
-Article Structure:
+Please start writing from the <h2>Quick Verdict</h2> section.`;
 
-<h2>Quick Verdict</h2>
-Write 2–3 short sentences and include a realistic rating between 4/5 and 4.5/5 unless the product is genuinely poor.
-${imageHtml}
+  // 3. Call Claude with the new Header and Caching Block
+  const rawContent = await callClaude(systemPrompt, userPrompt, 2500);
 
-<h2>Key Specifications</h2>
-Create an HTML table with:
-- Price
-- Main Features
-- Compatibility
-- Best For
-After the specifications table, include this exact HTML block:
+  // 4. Wrap the generated content with your site-specific UI components
+  const imageHtml = imageUrl ? `
+<figure style="margin:2rem 0;text-align:center;">
+  <img src="${imageUrl}" alt="${topic.product} Review India" style="width:100%;max-width:800px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1);" />
+  <figcaption style="font-size:13px;color:#666;margin-top:10px;">${topic.product} — Available in India for ${topic.price}</figcaption>
+</figure>` : "";
 
-<div style="display:flex;gap:12px;flex-wrap:wrap;margin:1rem 0 1.5rem 0;">
-  <a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=maruthiteja-21"
-     target="_blank"
-     rel="noopener noreferrer"
-     style="background:#FF9900;color:#000;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">
-     Check Price on Amazon India
-  </a>
-
-  <a href="https://www.flipkart.com/search?q=${encodeURIComponent(topic.product)}"
-     target="_blank"
-     rel="noopener noreferrer"
-     style="background:#2874F0;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">
-     Check Price on Flipkart
-  </a>
-</div>
-
-
-<h2>Design and Build Quality</h2>
-
-<h2>Performance and Daily Usage</h2>
-
-<h2>Pros and Cons</h2>
-Use bullet points.
-
-If there is any safety concern (such as magnetic interference, heat, pacemakers, or compatibility issues), add a small highlighted Safety Note box in HTML after the cons list.
-
-<h2>Who Should Buy ${topic.product}?</h2>
-
-You MUST include both sections below exactly in this format:
-
-<h3>Perfect For</h3>
-<ul>
-<li>People who want a cleaner desk setup</li>
-<li>Office users who charge their phone daily</li>
-<li>Anyone with a clutter-free aesthetic in mind</li>
-</ul>
-
-<h3>Skip If</h3>
-<ul>
-<li>Users who need very fast charging speeds</li>
-<li>People with older phones that do not support wireless charging</li>
-<li>Anyone who uses magnetic cards or medical devices near their desk</li>
-</ul>
-
-<h2>Final Verdict</h2>
-Explain whether it is worth buying for Indian users in 2026, considering Indian pricing, availability and value for money.
-
-At the end, include exactly this Amazon button:
-
-${amazonBox}
-`;
-
-  let content = await callClaude(prompt, 1800);
-
-  content += `
-<div style="background:#fff8e6;border:2px solid #FF9900;border-radius:8px;padding:1rem;text-align:center;margin:1.5rem 0;">
-  <p style="font-weight:bold;margin-bottom:10px;">Compare Prices in India</p>
-
-  <a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=maruthiteja-21"
-     target="_blank"
-     rel="noopener noreferrer"
-     style="background:#FF9900;color:#000;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;margin-right:10px;">
-     Check Price on Amazon
-  </a>
-
-  <a href="https://www.flipkart.com/search?q=${encodeURIComponent(topic.product)}&affid=maruthiteja"
-     target="_blank"
-     rel="noopener noreferrer"
-     style="background:#2874F0;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">
-     Check Price on Flipkart
-  </a>
+  const shopButtons = `
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin:2rem 0;justify-content:center;">
+  <a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=${AFFILIATE_TAG}" target="_blank" rel="noopener noreferrer" style="background:#FF9900;color:#000;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">View on Amazon India</a>
+  <a href="https://www.flipkart.com/search?q=${encodeURIComponent(topic.product)}" target="_blank" rel="noopener noreferrer" style="background:#2874F0;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Check Flipkart Price</a>
 </div>`;
 
-  // Add related links at end
-  content += `
-  <hr>
-  <h3>Related Articles</h3>
+  // 5. Final Assembly (Injecting UI components into the AI text)
+  let finalHtml = rawContent
+    .replace("</h2>", `</h2>${imageHtml}`) // Injects image after the first H2
+    .replace("</h2>", `</h2>${shopButtons}`); // Injects buttons after the specs (second H2)
+
+  // Append Footer SEO/JSON-LD
+  finalHtml += `
+<hr style="margin:3rem 0;">
+<div style="background:#f9f9f9;padding:20px;border-radius:10px;">
+  <h3 style="margin-top:0;">Related Buying Guides</h3>
   <ul>
-    <li><a href="/category/${topic.category.toLowerCase().replace(/\s+/g, "-")}/">More ${topic.category} Reviews</a></li>
-    <li><a href="/">Latest Reviews on Teja Reviews</a></li>
-  </ul>`;
+    <li><a href="/category/${topic.category.toLowerCase().replace(/\s+/g, "-")}/">Best ${topic.category} in India</a></li>
+    <li><a href="/">Latest Gadget Reviews</a></li>
+  </ul>
+</div>
 
-  // Add FAQ schema
-  content += `
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "Is ${topic.product} worth buying in India in 2026?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "${topic.product} is worth considering for Indian buyers because it offers good value for its price range and useful features."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What is the price of ${topic.product} in India?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "The approximate price range of ${topic.product} in India is ${topic.price}."
-        }
-      }
-    ]
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "${topic.product}",
+  "description": "Expert review of ${topic.product} for Indian consumers in 2026.",
+  "brand": { "@type": "Brand", "name": "Teja Reviews" },
+  "offers": {
+    "@type": "Offer",
+    "priceCurrency": "INR",
+    "price": "${topic.price.split("–")[0].replace(/[^0-9]/g, "")}",
+    "availability": "https://schema.org/InStock"
   }
-  </script>`;
+}
+</script>`;
 
-  console.log(`✅ Content generated — ${content.length} chars`);
-  return content;
+  console.log(`✅ Content generated — ${finalHtml.length} chars (Optimized)`);
+  return finalHtml;
 }
 
 // ============================================
@@ -761,9 +660,9 @@ async function getCategoryId(auth, name) {
 }
 
 // ── Create or get tag IDs ──
+// ── Create or get tag IDs (OPTIMIZED) ──
 async function getTagIds(auth, tags) {
-  const ids = [];
-  for (const tag of tags.slice(0, 3)) {  // Reduced from 5
+  const promises = tags.slice(0, 3).map(async (tag) => {
     try {
       const r = await fetchWithTimeout(
         `${WORDPRESS_URL}/wp-json/wp/v2/tags`,
@@ -775,11 +674,15 @@ async function getTagIds(auth, tags) {
         15000
       );
       const t = await r.json();
-      if (t.id) ids.push(t.id);
-      else if (t.code === "term_exists") ids.push(t.data.term_id);
-    } catch {}
-  }
-  return ids;
+      if (t.id) return t.id;
+      if (t.code === "term_exists") return t.data.term_id;
+    } catch {
+      return null;
+    }
+  });
+
+  const ids = await Promise.all(promises);
+  return ids.filter(id => id !== null); // Remove any failed requests
 }
 
 // ── Publish to WordPress ──
@@ -835,38 +738,61 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
   return post;
 }
 
-// ── Main ──
+// ── Main Execution Flow (SDE 2 Optimized) ──
 async function main() {
-  console.log("🤖 Teja Reviews — Claude Auto Poster v3 (OPTIMIZED)");
-  console.log("===================================================\n");
+  console.log("🚀 Starting Teja Reviews — Claude Auto Poster v3");
+  console.log("===============================================");
 
-  if (!ANTHROPIC_KEY) throw new Error("Set ANTHROPIC_API_KEY");
-  if (!WP_APP_PASS) throw new Error("Set WP_APP_PASSWORD");
+  // 1. Pre-flight Checks
+  if (!ANTHROPIC_KEY || !WP_APP_PASS) {
+    throw new Error("Missing critical environment variables: ANTHROPIC_API_KEY or WP_APP_PASSWORD");
+  }
 
+  // 2. State Check
   const topic = getTodaysTopic();
-  console.log(`📦 Today: ${topic.product}`);
+  console.log(`📦 Targeted Product: ${topic.product}`);
 
   if (isAlreadyPosted(topic.product)) {
-    console.log("⚠️ Already posted, skipping.\n");
+    console.log("⚠️ Product already exists in history. Skipping to prevent duplicate content.");
     return;
   }
 
-  const imageUrl = await fetchImage(topic.imageQuery);
-  const [content, meta] = await Promise.all([
-    generatePost(topic, imageUrl),
-    generateMeta(topic)
-  ]);
+  try {
+    // 3. Dependency: Fetch the Image URL first (required for both content & upload)
+    const imageUrl = await fetchImage(topic.imageQuery);
+    const auth = Buffer.from(`${WP_USERNAME}:${WP_APP_PASS}`).toString("base64");
 
-  const auth = Buffer.from(`${WP_USERNAME}:${WP_APP_PASS}`).toString("base64");
-  const uploadedImg = await uploadImageToWP(auth, imageUrl, topic.product);
+    // 4. PARALLEL EXECUTION: Content Gen, Meta Gen, and WP Media Upload
+    // We run these in parallel because they are independent network tasks.
+    console.log("⚡ Initiating parallel tasks: AI Generation & Media Upload...");
+    
+    const [content, meta, uploadedImg] = await Promise.all([
+      generatePost(topic, imageUrl),
+      generateMeta(topic),
+      uploadImageToWP(auth, imageUrl, topic.product)
+    ]);
 
-  await publishToWordPress(topic, content, meta, uploadedImg?.id);
-  markPosted(topic.product);
+    // 5. Final Assembly: Publish to WordPress
+    // We pass uploadedImg?.id so if the image upload fails, the post still publishes without it.
+    const result = await publishToWordPress(topic, content, meta, uploadedImg?.id);
 
-  console.log("\n✅ Done!\n");
+    // 6. Update local state
+    markPosted(topic.product);
+
+    console.log("\n===============================================");
+    console.log(`✅ SUCCESS: ${topic.product} is live!`);
+    console.log(`🔗 URL: ${WORDPRESS_URL}/${result.slug}/`);
+    console.log("===============================================\n");
+
+  } catch (err) {
+    console.error("\n❌ CRITICAL ERROR during execution:");
+    console.error(`Message: ${err.message}`);
+    
+    // As an SDE, we want the Action to fail so we get a notification
+    process.exit(1);
+  }
 }
 
-main().catch(err => {
-  console.error("❌ Error:", err.message);
-  process.exit(1);
-});
+// Global invocation
+main();
+
