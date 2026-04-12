@@ -386,7 +386,7 @@ async function callClaude(systemPrompt, userPrompt, maxTokens = 1500) {
             "anthropic-beta": "prompt-caching-2024-07-31" // REQUIRED FOR CACHING
           },
           body: JSON.stringify({
-            model: "claude-3-5-sonnet-latest", // Much faster and cheaper than Opus
+            model: "claude-sonnet-4-6", // Much faster and cheaper than Opus
             max_tokens: maxTokens,
             system: [
               {
