@@ -630,24 +630,38 @@ async function generateMeta(topic) {
 // WORDPRESS HELPERS
 // ============================================
 async function getCategoryId(auth, name) {
-  const res = await fetchWithTimeout(
-    `${WORDPRESS_URL}/wp-json/wp/v2/categories?search=${encodeURIComponent(name)}`,
-    { headers: { "Authorization": `Basic ${auth}` } },
-    15000
-  );
-  const cats = await res.json();
-  if (cats.length > 0) return parseInt(cats[0].id, 10);
+  try {
+    // Search for existing category
+    const res = await fetchWithTimeout(
+      `${WORDPRESS_URL}/wp-json/wp/v2/categories?search=${encodeURIComponent(name)}`,
+      { headers: { "Authorization": `Basic ${auth}` } },
+      15000
+    );
+    const cats = await res.json();
+    console.log(`🔍 Category search result:`, JSON.stringify(cats).slice(0, 200));
+    
+    if (Array.isArray(cats) && cats.length > 0) {
+      return parseInt(cats[0].id, 10);
+    }
 
-  const cr = await fetchWithTimeout(
-    `${WORDPRESS_URL}/wp-json/wp/v2/categories`,
-    {
-      method:  "POST",
-      headers: { "Authorization": `Basic ${auth}`, "Content-Type": "application/json" },
-      body:    JSON.stringify({ name, slug: name.toLowerCase().replace(/\s+/g, "-") })
-    },
-    15000
-  );
-return parseInt((await cr.json()).id, 10);
+    // Create new category
+    const cr = await fetchWithTimeout(
+      `${WORDPRESS_URL}/wp-json/wp/v2/categories`,
+      {
+        method:  "POST",
+        headers: { "Authorization": `Basic ${auth}`, "Content-Type": "application/json" },
+        body:    JSON.stringify({ name, slug: name.toLowerCase().replace(/\s+/g, "-") })
+      },
+      15000
+    );
+    const newCat = await cr.json();
+    console.log(`🔍 New category result:`, JSON.stringify(newCat).slice(0, 200));
+    return parseInt(newCat.id, 10);
+
+  } catch (err) {
+    console.log(`⚠️  getCategoryId failed: ${err.message}`);
+    return 1; // fallback to default "Uncategorized" category
+  }
 }
 
 async function getTagIds(auth, tags) {
