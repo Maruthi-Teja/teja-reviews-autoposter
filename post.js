@@ -12,7 +12,7 @@ const WP_USERNAME      = "maruthiteja456@gmail.com";
 const WP_APP_PASS      = process.env.WP_APP_PASSWORD || process.env.WP_PASS;
 const GEMINI_KEY       = process.env.GEMINI_API_KEY;
 const PEXELS_API_KEY   = process.env.PEXELS_API_KEY;
-const AFFILIATE_TAG    = "maruthiteja-21";x
+const AFFILIATE_TAG    = "maruthiteja-21";
 const HISTORY_FILE     = "./posted.json";
 const SEO_YEAR         = 2026;
 
