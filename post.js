@@ -654,8 +654,13 @@ async function getCategoryId(auth, name) {
       },
       15000
     );
-    const newCat = await cr.json();
-    console.log(`🔍 New category result:`, JSON.stringify(newCat).slice(0, 200));
+   const newCat = await cr.json();
+   console.log(`🔍 New category result:`, JSON.stringify(newCat).slice(0, 200));
+
+// If term already exists, WordPress returns term_id inside data
+    if (newCat.code === "term_exists") {
+      return parseInt(newCat.data.term_id, 10);
+    }
     return parseInt(newCat.id, 10);
 
   } catch (err) {
