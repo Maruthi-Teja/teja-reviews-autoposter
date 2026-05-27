@@ -2,25 +2,25 @@ import fetch from "node-fetch";
 import fs from "fs";
 
 // ============================================
-// Teja Reviews — Claude Auto Poster v3 (OPTIMIZED)
+// Teja Reviews — Gemini Auto Poster v4
 // Site: tejareviews.in | Affiliate: maruthiteja-21
-// Features: AI content + images + Rank Math SEO + API Optimization
+// Features: Gemini AI + Pexels images + Rank Math SEO
 // ============================================
 
 const WORDPRESS_URL    = "https://tejareviews.in";
 const WP_USERNAME      = "maruthiteja456@gmail.com";
 const WP_APP_PASS      = process.env.WP_APP_PASSWORD || process.env.WP_PASS;
-const ANTHROPIC_KEY    = process.env.ANTHROPIC_API_KEY;
+const GEMINI_KEY       = process.env.GEMINI_API_KEY;
 const PEXELS_API_KEY   = process.env.PEXELS_API_KEY;
 const AFFILIATE_TAG    = "maruthiteja-21";
 const HISTORY_FILE     = "./posted.json";
 const SEO_YEAR         = 2026;
 
-// Optimized timeout settings
-const API_TIMEOUT_MS   = 60000;  // 60 second timeout for Claude (increased)
-const FETCH_TIMEOUT_MS = 20000;  // 20 second timeout for images
-const CLAUDE_RETRIES   = 5;      // More retries with longer backoff
-const CLAUDE_INITIAL_DELAY = 5000; // Start with 5 second delay
+// Timeout & Retry settings
+const API_TIMEOUT_MS        = 60000;  // 60 seconds
+const FETCH_TIMEOUT_MS      = 20000;  // 20 seconds
+const GEMINI_RETRIES        = 5;
+const GEMINI_INITIAL_DELAY  = 5000;   // 5 seconds
 
 // ============================================
 // 33 TRENDING PRODUCTS (2026)
@@ -259,6 +259,10 @@ const TOPICS = [
   }
 ];
 
+// ============================================
+// HELPERS
+// ============================================
+
 function getTodaysTopic() {
   const dayIndex = Math.floor(Date.now() / 86400000) % TOPICS.length;
   return TOPICS[dayIndex];
@@ -304,7 +308,7 @@ function ensureTitleHasYear(title) {
 }
 
 // ============================================
-// OPTIMIZED: Fetch with timeout
+// FETCH WITH TIMEOUT
 // ============================================
 async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -313,8 +317,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
   try {
     const response = await fetch(url, {
       ...options,
-      signal: controller.signal,
-      timeout: timeoutMs
+      signal: controller.signal
     });
     clearTimeout(timeoutId);
     return response;
@@ -368,76 +371,70 @@ async function retry(fn, retries = 3, label = "operation", delayMs = 1000) {
 }
 
 // ============================================
-// OPTIMIZED: Claude API with smarter retry
+// GEMINI API (replaces callClaude)
 // ============================================
-async function callClaude(systemPrompt, userPrompt, maxTokens = 1500) {
-  console.log(`📡 Calling Claude API (Sonnet with caching)...`);
+async function callClaude(systemPrompt, userPrompt, maxTokens = 2500) {
+  console.log(`📡 Calling Gemini API (gemini-1.5-flash)...`);
 
-  for (let attempt = 1; attempt <= CLAUDE_RETRIES; attempt++) {
+  for (let attempt = 1; attempt <= GEMINI_RETRIES; attempt++) {
     try {
       const response = await fetchWithTimeout(
-        "https://api.anthropic.com/v1/messages",
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": ANTHROPIC_KEY,
-            "anthropic-version": "2023-06-01",
-            "anthropic-beta": "prompt-caching-2024-07-31" // REQUIRED FOR CACHING
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "claude-sonnet-4-6", // Much faster and cheaper than Opus
-            max_tokens: maxTokens,
-            system: [
-              {
-                type: "text",
-                text: systemPrompt,
-                cache_control: { type: "ephemeral" } // Caches the heavy SEO rules
-              }
-            ],
-            messages: [{ role: "user", content: userPrompt }]
+            contents: [{
+              parts: [{
+                text: `${systemPrompt}\n\n${userPrompt}`
+              }]
+            }],
+            generationConfig: {
+              maxOutputTokens: maxTokens,
+              temperature: 0.7
+            }
           })
         },
         API_TIMEOUT_MS
       );
 
       const data = await response.json();
-      if (response.ok && data.content && data.content[0]) {
-        console.log(`✅ Claude succeeded. Input tokens: ${data.usage.input_tokens} (Cached: ${data.usage.cache_read_input_tokens || 0})`);
-        return data.content[0].text;
+
+      // Handle quota/rate limit errors
+      if (response.status === 429) {
+        throw new Error("Gemini rate limit hit");
       }
-      
-      if (response.status === 429 || response.status === 529) throw new Error("Overloaded");
-      throw new Error(`API Error: ${JSON.stringify(data)}`);
+
+      if (
+        response.ok &&
+        data.candidates?.[0]?.content?.parts?.[0]?.text
+      ) {
+        const text = data.candidates[0].content.parts[0].text;
+        console.log(`✅ Gemini succeeded. Characters: ${text.length}`);
+        return text;
+      }
+
+      throw new Error(`Gemini Error: ${JSON.stringify(data)}`);
+
     } catch (err) {
-      const isLastRetry = attempt === CLAUDE_RETRIES;
-      
-      if (err.message.includes("timeout")) {
-        const waitTime = CLAUDE_INITIAL_DELAY * (2 ** (attempt - 1));
-        
-        if (isLastRetry) {
-          console.log(`❌ Claude timeout after ${CLAUDE_RETRIES} retries`);
-          throw err;
-        }
-
-        console.log(`⚠️  Claude timeout (attempt ${attempt}/${CLAUDE_RETRIES}) — waiting ${Math.round(waitTime / 1000)}s...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        continue;
+      const isLastRetry = attempt === GEMINI_RETRIES;
+      if (isLastRetry) {
+        console.log(`❌ Gemini failed after ${GEMINI_RETRIES} retries`);
+        throw err;
       }
 
-      // Non-timeout error
-      if (isLastRetry) throw err;
-      
-      const waitTime = CLAUDE_INITIAL_DELAY * (2 ** (attempt - 1));
-      console.log(`⚠️  Claude request failed: ${err.message} — retrying in ${Math.round(waitTime / 1000)}s`);
+      const waitTime = GEMINI_INITIAL_DELAY * (2 ** (attempt - 1));
+      console.log(`⚠️  Gemini failed (attempt ${attempt}/${GEMINI_RETRIES}) — retrying in ${Math.round(waitTime / 1000)}s`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
   }
 
-  throw new Error("Claude API retries exhausted");
+  throw new Error("Gemini API retries exhausted");
 }
 
-// ── Pexels image fetch ──
+// ============================================
+// PEXELS IMAGE FETCH
+// ============================================
 async function fetchImageFromPexels(imageQuery) {
   if (!PEXELS_API_KEY) return null;
 
@@ -497,11 +494,11 @@ async function uploadImageToWP(auth, imageUrl, altText) {
     console.log(`📤 Uploading image...`);
     const imgRes = await fetchWithTimeout(imageUrl, {}, FETCH_TIMEOUT_MS);
     if (!imgRes.ok) throw new Error(`Image download failed`);
-    
+
     const arrayBuf = await imgRes.arrayBuffer();
     const imgBuffer = Buffer.from(arrayBuf);
 
-    const uploadRes = await retry(() => 
+    const uploadRes = await retry(() =>
       fetchWithTimeout(`${WORDPRESS_URL}/wp-json/wp/v2/media`, {
         method: "POST",
         headers: {
@@ -527,80 +524,72 @@ async function uploadImageToWP(auth, imageUrl, altText) {
 }
 
 // ============================================
-// OPTIMIZED: Shorter content generation
+// CONTENT GENERATION
 // ============================================
-// Replace your current generatePost() function with this
-
-/**
- * Optimized GeneratePost: 
- * Uses Prompt Caching to keep instructions in memory (reducing costs/latency).
- * Uses parallel data blocks for cleaner HTML injection.
- */
 async function generatePost(topic, imageUrl) {
   console.log(`\n📝 Generating content for: ${topic.product}...`);
 
-  // 1. Define the HEAVY static instructions (This is what gets cached)
   const systemPrompt = `You are an expert SEO content writer for Teja Reviews (tejareviews.in).
 Your goal is to write a high-converting, helpful product review for Indian buyers in 2026.
 
 RULES:
 - Use Indian English and reference Indian context (weather, homes, offices).
 - Tone: Professional yet conversational (fan-first).
-- Format: Strictly use HTML (h2, h3, p, ul, li). No markdown.
+- Format: Strictly use HTML (h2, h3, p, ul, li). No markdown. No backticks. No code fences.
 - Length: 900–1200 words.
 - Comparison: Compare value with other popular products in India.
 - Structure:
-  1. Quick Verdict (with rating)
+  1. Quick Verdict (with rating out of 5)
   2. Key Specifications (HTML Table)
   3. Design & Build Quality
   4. Performance & Daily Usage
-  5. Pros and Cons
+  5. Pros and Cons (two separate ul lists)
   6. Who Should Buy? (Perfect For / Skip If)
-  7. Final Verdict (Availability on Amazon/Flipkart)`;
+  7. Final Verdict (mention Amazon India availability)
+- Start directly from <h2>Quick Verdict</h2>. Do not add any preamble.`;
 
-  // 2. Define the dynamic data for THIS specific run
-  const userPrompt = `Review the following product:
+  const userPrompt = `Write a full product review for the following:
+
 Product: ${topic.product}
 Primary Keyword: ${topic.keywords[0]}
 Secondary Keyword: ${topic.keywords[1] || ""}
 Price Range: ${topic.price}
 Year: ${SEO_YEAR}
+Amazon Affiliate Tag: ${AFFILIATE_TAG}`;
 
-Include these affiliate details:
-- Amazon Tag: ${AFFILIATE_TAG}
-- Pexels Image URL: ${imageUrl || "None"}
-
-Please start writing from the <h2>Quick Verdict</h2> section.`;
-
-  // 3. Call Claude with the new Header and Caching Block
   const rawContent = await callClaude(systemPrompt, userPrompt, 2500);
 
-  // 4. Wrap the generated content with your site-specific UI components
+  // Strip any accidental markdown fences Gemini may add
+  const cleanContent = rawContent
+    .replace(/```html/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
   const imageHtml = imageUrl ? `
 <figure style="margin:2rem 0;text-align:center;">
-  <img src="${imageUrl}" alt="${topic.product} Review India" style="width:100%;max-width:800px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1);" />
+  <img src="${imageUrl}" alt="${topic.product} Review India ${SEO_YEAR}" style="width:100%;max-width:800px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1);" loading="lazy" />
   <figcaption style="font-size:13px;color:#666;margin-top:10px;">${topic.product} — Available in India for ${topic.price}</figcaption>
 </figure>` : "";
 
   const shopButtons = `
 <div style="display:flex;gap:12px;flex-wrap:wrap;margin:2rem 0;justify-content:center;">
-  <a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=${AFFILIATE_TAG}" target="_blank" rel="noopener noreferrer" style="background:#FF9900;color:#000;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">View on Amazon India</a>
-  <a href="https://www.flipkart.com/search?q=${encodeURIComponent(topic.product)}" target="_blank" rel="noopener noreferrer" style="background:#2874F0;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Check Flipkart Price</a>
+  <a href="https://www.amazon.in/s?k=${encodeURIComponent(topic.product)}&tag=${AFFILIATE_TAG}" target="_blank" rel="noopener noreferrer" style="background:#FF9900;color:#000;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;">🛒 View on Amazon India</a>
+  <a href="https://www.flipkart.com/search?q=${encodeURIComponent(topic.product)}" target="_blank" rel="noopener noreferrer" style="background:#2874F0;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;">🛍️ Check Flipkart Price</a>
 </div>`;
 
-  // 5. Final Assembly (Injecting UI components into the AI text)
-  let finalHtml = rawContent
-    .replace("</h2>", `</h2>${imageHtml}`) // Injects image after the first H2
-    .replace("</h2>", `</h2>${shopButtons}`); // Injects buttons after the specs (second H2)
+  // Inject image after first H2, shop buttons after second H2
+  let finalHtml = cleanContent
+    .replace("</h2>", `</h2>${imageHtml}`)
+    .replace("</h2>", `</h2>${shopButtons}`);
 
-  // Append Footer SEO/JSON-LD
+  // Footer
   finalHtml += `
 <hr style="margin:3rem 0;">
 <div style="background:#f9f9f9;padding:20px;border-radius:10px;">
   <h3 style="margin-top:0;">Related Buying Guides</h3>
   <ul>
-    <li><a href="/category/${topic.category.toLowerCase().replace(/\s+/g, "-")}/">Best ${topic.category} in India</a></li>
-    <li><a href="/">Latest Gadget Reviews</a></li>
+    <li><a href="/category/${topic.category.toLowerCase().replace(/\s+/g, "-")}/">Best ${topic.category} Products in India</a></li>
+    <li><a href="/">Latest Reviews on Teja Reviews</a></li>
   </ul>
 </div>
 
@@ -609,7 +598,7 @@ Please start writing from the <h2>Quick Verdict</h2> section.`;
   "@context": "https://schema.org",
   "@type": "Product",
   "name": "${topic.product}",
-  "description": "Expert review of ${topic.product} for Indian consumers in 2026.",
+  "description": "Expert review of ${topic.product} for Indian consumers in ${SEO_YEAR}.",
   "brand": { "@type": "Brand", "name": "Teja Reviews" },
   "offers": {
     "@type": "Offer",
@@ -620,24 +609,26 @@ Please start writing from the <h2>Quick Verdict</h2> section.`;
 }
 </script>`;
 
-  console.log(`✅ Content generated — ${finalHtml.length} chars (Optimized)`);
+  console.log(`✅ Content generated — ${finalHtml.length} chars`);
   return finalHtml;
 }
 
 // ============================================
-// OPTIMIZED: Faster meta generation
+// META GENERATION
 // ============================================
 async function generateMeta(topic) {
   return {
-    title: `${topic.product} Review India 2026: Worth Buying?`,
+    title: `${topic.product} Review India ${SEO_YEAR}: Worth Buying?`,
     slug: buildSeoSlug(topic.product),
-    metaDescription: `${topic.product} review India 2026. Check price, features, pros, cons and whether it is worth buying in India.`,
+    metaDescription: `${topic.product} review India ${SEO_YEAR}. Check price, features, pros, cons and whether it is worth buying in India.`,
     focusKeyword: topic.keywords[0],
     tags: [topic.keywords[0], topic.keywords[1] || topic.product]
   };
 }
 
-// ── Get or create WordPress category ──
+// ============================================
+// WORDPRESS HELPERS
+// ============================================
 async function getCategoryId(auth, name) {
   const res = await fetchWithTimeout(
     `${WORDPRESS_URL}/wp-json/wp/v2/categories?search=${encodeURIComponent(name)}`,
@@ -659,8 +650,6 @@ async function getCategoryId(auth, name) {
   return (await cr.json()).id;
 }
 
-// ── Create or get tag IDs ──
-// ── Create or get tag IDs (OPTIMIZED) ──
 async function getTagIds(auth, tags) {
   const promises = tags.slice(0, 3).map(async (tag) => {
     try {
@@ -682,37 +671,39 @@ async function getTagIds(auth, tags) {
   });
 
   const ids = await Promise.all(promises);
-  return ids.filter(id => id !== null); // Remove any failed requests
+  return ids.filter(id => id !== null);
 }
 
-// ── Publish to WordPress ──
+// ============================================
+// PUBLISH TO WORDPRESS
+// ============================================
 async function publishToWordPress(topic, content, meta, featuredImageId) {
   console.log(`\n🚀 Publishing to tejareviews.in...`);
   const auth = Buffer.from(`${WP_USERNAME}:${WP_APP_PASS}`).toString("base64");
 
   let slug = buildSeoSlug(topic.product);
 
- if (await slugExistsInWordPress(auth, slug)) {
-  console.log(`⚠️ Duplicate slug found for ${slug}, adding test suffix`);
-  slug = `${slug}-test-${Date.now().toString().slice(-4)}`;
- }
+  if (await slugExistsInWordPress(auth, slug)) {
+    console.log(`⚠️  Duplicate slug found for ${slug}, adding suffix`);
+    slug = `${slug}-${Date.now().toString().slice(-4)}`;
+  }
 
   const categoryId = await getCategoryId(auth, topic.category);
   const tagIds = await getTagIds(auth, meta.tags);
   const postTitle = ensureTitleHasYear(meta.title);
 
   const postPayload = {
-    title:          postTitle,
-    content:        content,
-    slug:           slug,
-    status:         "publish",
-    categories:     [categoryId],
-    tags:           tagIds,
+    title:      postTitle,
+    content:    content,
+    slug:       slug,
+    status:     "publish",
+    categories: [categoryId],
+    tags:       tagIds,
     meta: {
-      rank_math_title:             postTitle,
-      rank_math_description:       meta.metaDescription,
-      rank_math_focus_keyword:     meta.focusKeyword,
-      rank_math_robots:            ["index", "follow"]
+      rank_math_title:         postTitle,
+      rank_math_description:   meta.metaDescription,
+      rank_math_focus_keyword: meta.focusKeyword,
+      rank_math_robots:        ["index", "follow"]
     }
   };
 
@@ -720,7 +711,7 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
     postPayload.featured_media = featuredImageId;
   }
 
-  const res = await retry(() => 
+  const res = await retry(() =>
     fetchWithTimeout(`${WORDPRESS_URL}/wp-json/wp/v2/posts`, {
       method:  "POST",
       headers: { "Authorization": `Basic ${auth}`, "Content-Type": "application/json" },
@@ -733,66 +724,60 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
 
   console.log(`\n🎉 PUBLISHED!`);
   console.log(`📌 ${post.title.rendered}`);
-  console.log(`🔗 /${post.slug}/`);
+  console.log(`🔗 ${WORDPRESS_URL}/${post.slug}/`);
 
   return post;
 }
 
-// ── Main Execution Flow (SDE 2 Optimized) ──
+// ============================================
+// MAIN
+// ============================================
 async function main() {
-  console.log("🚀 Starting Teja Reviews — Claude Auto Poster v3");
-  console.log("===============================================");
+  console.log("🚀 Starting Teja Reviews — Gemini Auto Poster v4");
+  console.log("=================================================");
 
-  // 1. Pre-flight Checks
-  if (!ANTHROPIC_KEY || !WP_APP_PASS) {
-    throw new Error("Missing critical environment variables: ANTHROPIC_API_KEY or WP_APP_PASSWORD");
+  // Pre-flight checks
+  if (!GEMINI_KEY) {
+    throw new Error("Missing GEMINI_API_KEY environment variable");
+  }
+  if (!WP_APP_PASS) {
+    throw new Error("Missing WP_APP_PASSWORD environment variable");
   }
 
-  // 2. State Check
   const topic = getTodaysTopic();
   console.log(`📦 Targeted Product: ${topic.product}`);
 
   if (isAlreadyPosted(topic.product)) {
-    console.log("⚠️ Product already exists in history. Skipping to prevent duplicate content.");
+    console.log("⚠️  Product already posted. Skipping to prevent duplicate content.");
     return;
   }
 
   try {
-    // 3. Dependency: Fetch the Image URL first (required for both content & upload)
     const imageUrl = await fetchImage(topic.imageQuery);
     const auth = Buffer.from(`${WP_USERNAME}:${WP_APP_PASS}`).toString("base64");
 
-    // 4. PARALLEL EXECUTION: Content Gen, Meta Gen, and WP Media Upload
-    // We run these in parallel because they are independent network tasks.
-    console.log("⚡ Initiating parallel tasks: AI Generation & Media Upload...");
-    
+    console.log("⚡ Running parallel tasks: AI content + meta + image upload...");
+
     const [content, meta, uploadedImg] = await Promise.all([
       generatePost(topic, imageUrl),
       generateMeta(topic),
       uploadImageToWP(auth, imageUrl, topic.product)
     ]);
 
-    // 5. Final Assembly: Publish to WordPress
-    // We pass uploadedImg?.id so if the image upload fails, the post still publishes without it.
     const result = await publishToWordPress(topic, content, meta, uploadedImg?.id);
 
-    // 6. Update local state
     markPosted(topic.product);
 
-    console.log("\n===============================================");
+    console.log("\n=================================================");
     console.log(`✅ SUCCESS: ${topic.product} is live!`);
     console.log(`🔗 URL: ${WORDPRESS_URL}/${result.slug}/`);
-    console.log("===============================================\n");
+    console.log("=================================================\n");
 
   } catch (err) {
-    console.error("\n❌ CRITICAL ERROR during execution:");
+    console.error("\n❌ CRITICAL ERROR:");
     console.error(`Message: ${err.message}`);
-    
-    // As an SDE, we want the Action to fail so we get a notification
     process.exit(1);
   }
 }
 
-// Global invocation
 main();
-
