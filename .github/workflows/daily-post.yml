@@ -1,23 +1,59 @@
-name: Daily Post
+name: Daily Post (3x per day)
 
+# ─────────────────────────────────────────────────────────────────
+# Schedule (UTC → IST = UTC + 5:30)
+#   02:30 UTC = 08:00 AM IST → POST_TYPE=review
+#   07:30 UTC = 01:00 PM IST → POST_TYPE=buying_guide
+#   13:30 UTC = 07:00 PM IST → POST_TYPE=comparison
+# ─────────────────────────────────────────────────────────────────
 on:
   schedule:
-    - cron: '30 2 * * *'
+    - cron: '30 2  * * *'   # 8:00 AM IST  — Review
+    - cron: '30 7  * * *'   # 1:00 PM IST  — Buying Guide
+    - cron: '30 13 * * *'   # 7:00 PM IST  — Comparison
   workflow_dispatch:
+    inputs:
+      post_type:
+        description: 'Post type to publish'
+        required: false
+        default: 'review'
+        type: choice
+        options:
+          - review
+          - buying_guide
+          - comparison
+
+permissions:
+  contents: write   # needed to commit posted.json back to repo
 
 jobs:
   post:
     runs-on: ubuntu-latest
-    env:
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      WP_APP_PASSWORD: ${{ secrets.WP_PASS }}
-      WP_PASS: ${{ secrets.WP_PASS }}
-      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
+    steps:
+      # ── Detect POST_TYPE from trigger time or manual input ──────
+      - name: Detect POST_TYPE
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TYPE="${{ github.event.inputs.post_type }}"
+          else
+            HOUR=$(date -u +%H)
+            if   [ "$HOUR" -ge 2 ]  && [ "$HOUR" -lt 6 ];  then TYPE="review"
+            elif [ "$HOUR" -ge 7 ]  && [ "$HOUR" -lt 11 ]; then TYPE="buying_guide"
+            else                                                  TYPE="comparison"
+            fi
+          fi
+          echo "POST_TYPE=$TYPE" >> $GITHUB_OUTPUT
+          echo "✅ POST_TYPE = $TYPE"
+
+      # ── Checkout ────────────────────────────────────────────────
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so git push works
+
+      # ── Node setup ──────────────────────────────────────────────
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -27,5 +63,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run daily post script
+      # ── Run the post script ─────────────────────────────────────
+      - name: Run post.js (${{ steps.detect.outputs.POST_TYPE }})
+        env:
+          GEMINI_API_KEY:  ${{ secrets.GEMINI_API_KEY }}
+          WP_APP_PASSWORD: ${{ secrets.WP_PASS }}
+          WP_PASS:         ${{ secrets.WP_PASS }}
+          PEXELS_API_KEY:  ${{ secrets.PEXELS_API_KEY }}
+          INDEXNOW_KEY:    ${{ secrets.INDEXNOW_KEY }}
+          POST_TYPE:       ${{ steps.detect.outputs.POST_TYPE }}
         run: node post.js
+
+      # ── Persist posted.json so duplicate prevention works ───────
+      - name: Commit posted.json
+        if: success()
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add posted.json
+          git diff --staged --quiet || git commit -m "chore: update posted.json [skip ci]"
+          git push

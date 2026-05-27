@@ -2,297 +2,283 @@ import fetch from "node-fetch";
 import fs from "fs";
 
 // ============================================
-// Teja Reviews — Gemini Auto Poster v4
+// Teja Reviews — Gemini Auto Poster v5
 // Site: tejareviews.in | Affiliate: maruthiteja-21
-// Features: Gemini AI + Pexels images + Rank Math SEO
+// Post Types: review | buying_guide | comparison
+// Phase 1: 3 posts/day  Phase 2: FAQ + internal links + IndexNow
 // ============================================
 
-const WORDPRESS_URL    = "https://tejareviews.in";
-const WP_USERNAME      = "maruthiteja456@gmail.com";
-const WP_APP_PASS      = process.env.WP_APP_PASSWORD || process.env.WP_PASS;
-const GEMINI_KEY       = process.env.GEMINI_API_KEY;
-const PEXELS_API_KEY   = process.env.PEXELS_API_KEY;
-const AFFILIATE_TAG    = "maruthiteja-21";
-const HISTORY_FILE     = "./posted.json";
-const SEO_YEAR         = 2026;
+const WORDPRESS_URL  = "https://tejareviews.in";
+const WP_USERNAME    = "maruthiteja456@gmail.com";
+const WP_APP_PASS    = process.env.WP_APP_PASSWORD || process.env.WP_PASS;
+const GEMINI_KEY     = process.env.GEMINI_API_KEY;
+const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
+const INDEXNOW_KEY   = process.env.INDEXNOW_KEY;
+const AFFILIATE_TAG  = "maruthiteja-21";
+const HISTORY_FILE   = "./posted.json";
+const SEO_YEAR       = 2026;
+const POST_TYPE      = process.env.POST_TYPE || "review"; // review | buying_guide | comparison
 
-// Timeout & Retry settings
-const API_TIMEOUT_MS        = 60000;  // 60 seconds
-const FETCH_TIMEOUT_MS      = 20000;  // 20 seconds
-const GEMINI_RETRIES        = 5;
-const GEMINI_INITIAL_DELAY  = 5000;   // 5 seconds
+// Timeout & retry settings
+const API_TIMEOUT_MS       = 60000;
+const FETCH_TIMEOUT_MS     = 20000;
+const GEMINI_RETRIES       = 5;
+const GEMINI_INITIAL_DELAY = 5000;
+const GEMINI_CALL_DELAY    = 4000; // between sequential Gemini calls (free-tier safety)
 
 // ============================================
 // 33 TRENDING PRODUCTS (2026)
 // ============================================
 const TOPICS = [
   {
-    product:      "Yoga Mats",
-    price:        "₹500–₹3,000",
-    category:     "Fitness & Wellness",
-    imageQuery:   "yoga mat studio high quality",
-    keywords:     ["yoga mat review India", "best yoga mat under 3000", "yoga mat thick eco-friendly"]
+    product:    "Yoga Mats",
+    price:      "₹500–₹3,000",
+    category:   "Fitness & Wellness",
+    imageQuery: "yoga mat studio high quality",
+    keywords:   ["yoga mat review India", "best yoga mat under 3000", "yoga mat thick eco-friendly"]
   },
   {
-    product:      "Acne Patches",
-    price:        "₹299–₹999",
-    category:     "Beauty & Skincare",
-    imageQuery:   "acne patches skincare treatment close up",
-    keywords:     ["acne patches India review", "best acne patches for cystic acne", "pimple patches 2026"]
+    product:    "Acne Patches",
+    price:      "₹299–₹999",
+    category:   "Beauty & Skincare",
+    imageQuery: "acne patches skincare treatment close up",
+    keywords:   ["acne patches India review", "best acne patches for cystic acne", "pimple patches 2026"]
   },
   {
-    product:      "Protein Powder",
-    price:        "₹800–₹2,500",
-    category:     "Nutrition & Fitness",
-    imageQuery:   "protein powder whey isolate container",
-    keywords:     ["best protein powder India", "whey protein powder under 2000", "protein powder review 2026"]
+    product:    "Protein Powder",
+    price:      "₹800–₹2,500",
+    category:   "Nutrition & Fitness",
+    imageQuery: "protein powder whey isolate container",
+    keywords:   ["best protein powder India", "whey protein powder under 2000", "protein powder review 2026"]
   },
   {
-    product:      "Vitamin C Serum",
-    price:        "₹599–₹3,500",
-    category:     "Beauty & Skincare",
-    imageQuery:   "vitamin c serum amber bottle skincare",
-    keywords:     ["vitamin c serum India review", "best vitamin c serum for skin", "vitamin c serum benefits"]
+    product:    "Vitamin C Serum",
+    price:      "₹599–₹3,500",
+    category:   "Beauty & Skincare",
+    imageQuery: "vitamin c serum amber bottle skincare",
+    keywords:   ["vitamin c serum India review", "best vitamin c serum for skin", "vitamin c serum benefits"]
   },
   {
-    product:      "Bluetooth Headphones",
-    price:        "₹1,500–₹10,000",
-    category:     "Tech & Audio",
-    imageQuery:   "wireless bluetooth headphones over ear black",
-    keywords:     ["best bluetooth headphones India", "bluetooth headphones under 5000", "noise cancelling headphones"]
+    product:    "Bluetooth Headphones",
+    price:      "₹1,500–₹10,000",
+    category:   "Tech & Audio",
+    imageQuery: "wireless bluetooth headphones over ear black",
+    keywords:   ["best bluetooth headphones India", "bluetooth headphones under 5000", "noise cancelling headphones"]
   },
   {
-    product:      "Reusable Water Bottles",
-    price:        "₹400–₹2,000",
-    category:     "Lifestyle & Wellness",
-    imageQuery:   "insulated reusable water bottle steel",
-    keywords:     ["best water bottle India", "insulated water bottle under 2000", "eco-friendly water bottle"]
+    product:    "Reusable Water Bottles",
+    price:      "₹400–₹2,000",
+    category:   "Lifestyle & Wellness",
+    imageQuery: "insulated reusable water bottle steel",
+    keywords:   ["best water bottle India", "insulated water bottle under 2000", "eco-friendly water bottle"]
   },
   {
-    product:      "Wi-Fi Doorbell Cameras",
-    price:        "₹2,999–₹8,999",
-    category:     "Smart Home Tech",
-    imageQuery:   "smart wifi doorbell camera security",
-    keywords:     ["doorbell camera India review", "smart doorbell camera under 5000", "wifi doorbell security"]
+    product:    "Wi-Fi Doorbell Cameras",
+    price:      "₹2,999–₹8,999",
+    category:   "Smart Home Tech",
+    imageQuery: "smart wifi doorbell camera security",
+    keywords:   ["doorbell camera India review", "smart doorbell camera under 5000", "wifi doorbell security"]
   },
   {
-    product:      "Scalp Massagers",
-    price:        "₹500–₹2,500",
-    category:     "Wellness & Beauty",
-    imageQuery:   "electric scalp massager head relaxation",
-    keywords:     ["scalp massager review India", "best scalp massager for hair growth", "electric scalp massager"]
+    product:    "Scalp Massagers",
+    price:      "₹500–₹2,500",
+    category:   "Wellness & Beauty",
+    imageQuery: "electric scalp massager head relaxation",
+    keywords:   ["scalp massager review India", "best scalp massager for hair growth", "electric scalp massager"]
   },
   {
-    product:      "Under-Eye Patches",
-    price:        "₹199–₹1,500",
-    category:     "Beauty & Skincare",
-    imageQuery:   "under eye patches skincare puffiness",
-    keywords:     ["under eye patches India", "best eye patches for dark circles", "eye patches review"]
+    product:    "Under-Eye Patches",
+    price:      "₹199–₹1,500",
+    category:   "Beauty & Skincare",
+    imageQuery: "under eye patches skincare puffiness",
+    keywords:   ["under eye patches India", "best eye patches for dark circles", "eye patches review"]
   },
   {
-    product:      "Home Décor Items",
-    price:        "₹299–₹5,000",
-    category:     "Home & Living",
-    imageQuery:   "modern home decor wall art pillow",
-    keywords:     ["home decor ideas India", "affordable home decor 2026", "home decor products online"]
+    product:    "Home Décor Items",
+    price:      "₹299–₹5,000",
+    category:   "Home & Living",
+    imageQuery: "modern home decor wall art pillow",
+    keywords:   ["home decor ideas India", "affordable home decor 2026", "home decor products online"]
   },
   {
-    product:      "Blush Makeup",
-    price:        "₹599–₹2,000",
-    category:     "Beauty & Cosmetics",
-    imageQuery:   "liquid blush makeup cream tones",
-    keywords:     ["blush makeup India review", "best blush for Indian skin tone", "liquid blush 2026"]
+    product:    "Blush Makeup",
+    price:      "₹599–₹2,000",
+    category:   "Beauty & Cosmetics",
+    imageQuery: "liquid blush makeup cream tones",
+    keywords:   ["blush makeup India review", "best blush for Indian skin tone", "liquid blush 2026"]
   },
   {
-    product:      "Wrap Skirts",
-    price:        "₹799–₹3,000",
-    category:     "Women's Fashion",
-    imageQuery:   "wrap skirt boho style fashion casual",
-    keywords:     ["wrap skirt India online", "boho wrap skirt review", "best wrap skirt brands India"]
+    product:    "Wrap Skirts",
+    price:      "₹799–₹3,000",
+    category:   "Women's Fashion",
+    imageQuery: "wrap skirt boho style fashion casual",
+    keywords:   ["wrap skirt India online", "boho wrap skirt review", "best wrap skirt brands India"]
   },
   {
-    product:      "Insulated Tumblers",
-    price:        "₹1,200–₹3,500",
-    category:     "Home & Kitchen",
-    imageQuery:   "insulated tumbler travel coffee cup stainless",
-    keywords:     ["insulated tumbler India review", "best coffee tumbler under 3000", "vacuum tumbler 2026"]
+    product:    "Insulated Tumblers",
+    price:      "₹1,200–₹3,500",
+    category:   "Home & Kitchen",
+    imageQuery: "insulated tumbler travel coffee cup stainless",
+    keywords:   ["insulated tumbler India review", "best coffee tumbler under 3000", "vacuum tumbler 2026"]
   },
   {
-    product:      "Teeth Whitening Strips",
-    price:        "₹399–₹2,000",
-    category:     "Personal Care",
-    imageQuery:   "teeth whitening strips dental care smile",
-    keywords:     ["teeth whitening strips India", "best whitening strips safe", "teeth whitening review"]
+    product:    "Teeth Whitening Strips",
+    price:      "₹399–₹2,000",
+    category:   "Personal Care",
+    imageQuery: "teeth whitening strips dental care smile",
+    keywords:   ["teeth whitening strips India", "best whitening strips safe", "teeth whitening review"]
   },
   {
-    product:      "Pet Supplies",
-    price:        "₹299–₹3,000",
-    category:     "Pets",
-    imageQuery:   "premium pet supplies toys treats food",
-    keywords:     ["pet supplies India online", "best pet food brands India", "dog treats review"]
+    product:    "Pet Supplies",
+    price:      "₹299–₹3,000",
+    category:   "Pets",
+    imageQuery: "premium pet supplies toys treats food",
+    keywords:   ["pet supplies India online", "best pet food brands India", "dog treats review"]
   },
   {
-    product:      "Gaming Headsets",
-    price:        "₹1,999–₹8,000",
-    category:     "Tech & Gaming",
-    imageQuery:   "gaming headset immersive sound rgb lights",
-    keywords:     ["gaming headset India review", "best gaming headset under 5000", "gaming headphones 2026"]
+    product:    "Gaming Headsets",
+    price:      "₹1,999–₹8,000",
+    category:   "Tech & Gaming",
+    imageQuery: "gaming headset immersive sound rgb lights",
+    keywords:   ["gaming headset India review", "best gaming headset under 5000", "gaming headphones 2026"]
   },
   {
-    product:      "Ashwagandha Tea",
-    price:        "₹299–₹1,200",
-    category:     "Health & Wellness",
-    imageQuery:   "ashwagandha tea herbal wellness drink",
-    keywords:     ["ashwagandha tea India review", "best ashwagandha tea brand", "adaptogen tea benefits"]
+    product:    "Ashwagandha Tea",
+    price:      "₹299–₹1,200",
+    category:   "Health & Wellness",
+    imageQuery: "ashwagandha tea herbal wellness drink",
+    keywords:   ["ashwagandha tea India review", "best ashwagandha tea brand", "adaptogen tea benefits"]
   },
   {
-    product:      "Sauna Blankets",
-    price:        "₹8,000–₹25,000",
-    category:     "Home Wellness",
-    imageQuery:   "infrared sauna blanket relaxation wellness",
-    keywords:     ["sauna blanket India review", "infrared sauna blanket benefits", "sauna blanket 2026"]
+    product:    "Sauna Blankets",
+    price:      "₹8,000–₹25,000",
+    category:   "Home Wellness",
+    imageQuery: "infrared sauna blanket relaxation wellness",
+    keywords:   ["sauna blanket India review", "infrared sauna blanket benefits", "sauna blanket 2026"]
   },
   {
-    product:      "Niacinamide Body Lotion",
-    price:        "₹399–₹1,500",
-    category:     "Beauty & Skincare",
-    imageQuery:   "niacinamide body lotion moisturizer bottle",
-    keywords:     ["niacinamide lotion review", "best body lotion with niacinamide", "niacinamide skincare India"]
+    product:    "Niacinamide Body Lotion",
+    price:      "₹399–₹1,500",
+    category:   "Beauty & Skincare",
+    imageQuery: "niacinamide body lotion moisturizer bottle",
+    keywords:   ["niacinamide lotion review", "best body lotion with niacinamide", "niacinamide skincare India"]
   },
   {
-    product:      "Lash Cleansing Shampoo",
-    price:        "₹499–₹1,200",
-    category:     "Beauty & Haircare",
-    imageQuery:   "lash extension cleansing shampoo foam",
-    keywords:     ["lash shampoo India review", "lash extension cleanser", "eyelash cleansing products"]
+    product:    "Lash Cleansing Shampoo",
+    price:      "₹499–₹1,200",
+    category:   "Beauty & Haircare",
+    imageQuery: "lash extension cleansing shampoo foam",
+    keywords:   ["lash shampoo India review", "lash extension cleanser", "eyelash cleansing products"]
   },
   {
-    product:      "LEGO Sets",
-    price:        "₹1,500–₹15,000",
-    category:     "Toys & Hobbies",
-    imageQuery:   "lego sets building kits adult collection",
-    keywords:     ["LEGO sets India price", "best LEGO sets to buy", "LEGO collection 2026"]
+    product:    "LEGO Sets",
+    price:      "₹1,500–₹15,000",
+    category:   "Toys & Hobbies",
+    imageQuery: "lego sets building kits adult collection",
+    keywords:   ["LEGO sets India price", "best LEGO sets to buy", "LEGO collection 2026"]
   },
   {
-    product:      "Foldable Chairs",
-    price:        "₹1,500–₹8,000",
-    category:     "Outdoor & Patio",
-    imageQuery:   "foldable camping chair portable lightweight",
-    keywords:     ["foldable chair India review", "camping chair portable", "travel chair 2026"]
+    product:    "Foldable Chairs",
+    price:      "₹1,500–₹8,000",
+    category:   "Outdoor & Patio",
+    imageQuery: "foldable camping chair portable lightweight",
+    keywords:   ["foldable chair India review", "camping chair portable", "travel chair 2026"]
   },
   {
-    product:      "Camping Hammocks",
-    price:        "₹1,200–₹5,000",
-    category:     "Outdoor & Recreation",
-    imageQuery:   "camping hammock portable outdoor travel",
-    keywords:     ["camping hammock India review", "best hammock for camping", "portable hammock 2026"]
+    product:    "Camping Hammocks",
+    price:      "₹1,200–₹5,000",
+    category:   "Outdoor & Recreation",
+    imageQuery: "camping hammock portable outdoor travel",
+    keywords:   ["camping hammock India review", "best hammock for camping", "portable hammock 2026"]
   },
   {
-    product:      "Eyebrow Lamination Kits",
-    price:        "₹799–₹3,000",
-    category:     "Beauty & DIY",
-    imageQuery:   "eyebrow lamination kit diy home",
-    keywords:     ["eyebrow lamination kit India", "DIY brow lamination", "eyebrow kit review"]
+    product:    "Eyebrow Lamination Kits",
+    price:      "₹799–₹3,000",
+    category:   "Beauty & DIY",
+    imageQuery: "eyebrow lamination kit diy home",
+    keywords:   ["eyebrow lamination kit India", "DIY brow lamination", "eyebrow kit review"]
   },
   {
-    product:      "Weighted Sleep Sacks",
-    price:        "₹2,000–₹6,000",
-    category:     "Kids & Baby",
-    imageQuery:   "weighted sleep sack baby infant comfort",
-    keywords:     ["weighted sleep sack review", "baby sleep sack India", "infant sleep aid"]
+    product:    "Weighted Sleep Sacks",
+    price:      "₹2,000–₹6,000",
+    category:   "Kids & Baby",
+    imageQuery: "weighted sleep sack baby infant comfort",
+    keywords:   ["weighted sleep sack review", "baby sleep sack India", "infant sleep aid"]
   },
   {
-    product:      "Bamboo Baby Pajamas",
-    price:        "₹599–₹1,500",
-    category:     "Kids & Baby",
-    imageQuery:   "bamboo baby pajamas soft eco-friendly",
-    keywords:     ["bamboo baby pajamas India", "organic baby clothes", "eco-friendly baby wear"]
+    product:    "Bamboo Baby Pajamas",
+    price:      "₹599–₹1,500",
+    category:   "Kids & Baby",
+    imageQuery: "bamboo baby pajamas soft eco-friendly",
+    keywords:   ["bamboo baby pajamas India", "organic baby clothes", "eco-friendly baby wear"]
   },
   {
-    product:      "Wireless Charging Desk Mat",
-    price:        "₹1,299–₹5,000",
-    category:     "Office Tech",
-    imageQuery:   "wireless charging desk mat workspace",
-    keywords:     ["wireless charging pad India", "desk mat with charger", "office tech gadgets"]
+    product:    "Wireless Charging Desk Mat",
+    price:      "₹1,299–₹5,000",
+    category:   "Office Tech",
+    imageQuery: "wireless charging desk mat workspace",
+    keywords:   ["wireless charging pad India", "desk mat with charger", "office tech gadgets"]
   },
   {
-    product:      "Embroidered Apparel",
-    price:        "₹799–₹5,000",
-    category:     "Fashion & Accessories",
-    imageQuery:   "embroidered clothing custom tshirt design",
-    keywords:     ["embroidered tshirt India", "custom embroidered apparel", "personalized clothing"]
+    product:    "Embroidered Apparel",
+    price:      "₹799–₹5,000",
+    category:   "Fashion & Accessories",
+    imageQuery: "embroidered clothing custom tshirt design",
+    keywords:   ["embroidered tshirt India", "custom embroidered apparel", "personalized clothing"]
   },
   {
-    product:      "Sustainable Kitchen Ware",
-    price:        "₹199–₹2,000",
-    category:     "Home & Kitchen",
-    imageQuery:   "eco-friendly kitchen glass straw reusable",
-    keywords:     ["sustainable kitchen products India", "eco-friendly kitchenware", "glass straws review"]
+    product:    "Sustainable Kitchen Ware",
+    price:      "₹199–₹2,000",
+    category:   "Home & Kitchen",
+    imageQuery: "eco-friendly kitchen glass straw reusable",
+    keywords:   ["sustainable kitchen products India", "eco-friendly kitchenware", "glass straws review"]
   },
   {
-    product:      "Disposable Period Underwear",
-    price:        "₹899–₹2,500",
-    category:     "Feminine Care",
-    imageQuery:   "period underwear menstrual care wellness",
-    keywords:     ["period underwear India review", "menstrual underwear brands", "period care products"]
+    product:    "Disposable Period Underwear",
+    price:      "₹899–₹2,500",
+    category:   "Feminine Care",
+    imageQuery: "period underwear menstrual care wellness",
+    keywords:   ["period underwear India review", "menstrual underwear brands", "period care products"]
   },
   {
-    product:      "Portable Ice Makers",
-    price:        "₹3,000–₹10,000",
-    category:     "Kitchen & Appliances",
-    imageQuery:   "portable ice maker machine automatic",
-    keywords:     ["portable ice maker India review", "best ice maker for home", "portable ice machine"]
+    product:    "Portable Ice Makers",
+    price:      "₹3,000–₹10,000",
+    category:   "Kitchen & Appliances",
+    imageQuery: "portable ice maker machine automatic",
+    keywords:   ["portable ice maker India review", "best ice maker for home", "portable ice machine"]
   },
   {
-    product:      "Smart Light Bulbs",
-    price:        "₹799–₹2,500",
-    category:     "Smart Home Tech",
-    imageQuery:   "smart light bulb wifi rgb color",
-    keywords:     ["smart light bulbs India", "wifi light bulb review", "smart lighting 2026"]
+    product:    "Smart Light Bulbs",
+    price:      "₹799–₹2,500",
+    category:   "Smart Home Tech",
+    imageQuery: "smart light bulb wifi rgb color",
+    keywords:   ["smart light bulbs India", "wifi light bulb review", "smart lighting 2026"]
   },
   {
-    product:      "Weighted Blankets",
-    price:        "₹2,500–₹8,000",
-    category:     "Sleep & Wellness",
-    imageQuery:   "weighted blanket sleep comfort cozy bed",
-    keywords:     ["weighted blanket India review", "best weighted blanket for sleep", "gravity blanket"]
+    product:    "Weighted Blankets",
+    price:      "₹2,500–₹8,000",
+    category:   "Sleep & Wellness",
+    imageQuery: "weighted blanket sleep comfort cozy bed",
+    keywords:   ["weighted blanket India review", "best weighted blanket for sleep", "gravity blanket"]
   }
 ];
 
 // ============================================
-// HELPERS
+// TOPIC HELPERS
 // ============================================
-
 function getTodaysTopic() {
-  const dayIndex = Math.floor(Date.now() / 86400000) % TOPICS.length;
-  return TOPICS[dayIndex];
+  return TOPICS[Math.floor(Date.now() / 86400000) % TOPICS.length];
 }
 
-function isAlreadyPosted(product) {
-  if (!fs.existsSync(HISTORY_FILE)) return false;
-  try {
-    const data = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf-8"));
-    return Array.isArray(data) && data.includes(product);
-  } catch {
-    return false;
-  }
+function getTomorrowsTopic() {
+  return TOPICS[(Math.floor(Date.now() / 86400000) + 1) % TOPICS.length];
 }
 
-function markPosted(product) {
-  let data = [];
-  if (fs.existsSync(HISTORY_FILE)) {
-    try {
-      data = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf-8"));
-    } catch {
-      data = [];
-    }
-  }
-  const unique = [...new Set([...(Array.isArray(data) ? data : []), product])];
-  fs.writeFileSync(HISTORY_FILE, JSON.stringify(unique, null, 2));
-}
-
-function buildSeoSlug(product) {
-  return `${product} review india ${SEO_YEAR}`
+// ============================================
+// SLUG BUILDERS
+// ============================================
+function slugify(text) {
+  return text
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]/g, "")
@@ -300,11 +286,63 @@ function buildSeoSlug(product) {
     .replace(/^-|-$/g, "");
 }
 
+function buildReviewSlug(product) {
+  return `${slugify(product)}-review-india-${SEO_YEAR}`;
+}
+
+function buildBuyingGuideSlug(product) {
+  return `best-${slugify(product)}-india-${SEO_YEAR}`;
+}
+
+function buildComparisonSlug(productA, productB) {
+  return `${slugify(productA)}-vs-${slugify(productB)}-india-${SEO_YEAR}`;
+}
+
 function ensureTitleHasYear(title) {
-  const cleanTitle = (title || "").trim();
-  if (!cleanTitle) return "";
-  if (cleanTitle.includes(String(SEO_YEAR))) return cleanTitle;
-  return `${cleanTitle} (${SEO_YEAR})`;
+  const t = (title || "").trim();
+  return t && !t.includes(String(SEO_YEAR)) ? `${t} (${SEO_YEAR})` : t;
+}
+
+// ============================================
+// HISTORY — per-type duplicate prevention
+// Structure: { reviews: [], buying_guides: [], comparisons: [] }
+// ============================================
+function readHistory() {
+  if (!fs.existsSync(HISTORY_FILE)) {
+    return { reviews: [], buying_guides: [], comparisons: [] };
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf-8"));
+    // Migrate legacy flat-array format from v4
+    if (Array.isArray(data)) {
+      return { reviews: data, buying_guides: [], comparisons: [] };
+    }
+    return {
+      reviews:       data.reviews       || [],
+      buying_guides: data.buying_guides || [],
+      comparisons:   data.comparisons   || []
+    };
+  } catch {
+    return { reviews: [], buying_guides: [], comparisons: [] };
+  }
+}
+
+function historyBucket(postType) {
+  if (postType === "buying_guide") return "buying_guides";
+  if (postType === "comparison")   return "comparisons";
+  return "reviews";
+}
+
+function isAlreadyPosted(key, postType) {
+  return readHistory()[historyBucket(postType)].includes(key);
+}
+
+function markPosted(key, postType) {
+  const h = readHistory();
+  const b = historyBucket(postType);
+  h[b] = [...new Set([...h[b], key])];
+  fs.writeFileSync(HISTORY_FILE, JSON.stringify(h, null, 2));
+  console.log(`📝 Marked posted: "${key}" [${postType}]`);
 }
 
 // ============================================
@@ -312,41 +350,30 @@ function ensureTitleHasYear(title) {
 // ============================================
 async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
+  const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    return response;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    if (error.name === "AbortError") {
-      throw new Error(`Request timeout after ${timeoutMs}ms`);
-    }
-    throw error;
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (err) {
+    clearTimeout(id);
+    if (err.name === "AbortError") throw new Error(`Timeout after ${timeoutMs}ms`);
+    throw err;
   }
 }
 
 async function slugExistsInWordPress(auth, slug) {
   try {
-    console.log(`🔍 Checking if slug already exists: /${slug}/`);
+    console.log(`🔍 Checking slug: /${slug}/`);
     const res = await fetchWithTimeout(
       `${WORDPRESS_URL}/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}&per_page=1`,
-      { headers: { "Authorization": `Basic ${auth}` } },
-      20000
+      { headers: { Authorization: `Basic ${auth}` } },
+      15000
     );
-
-    if (!res.ok) {
-      console.log(`⚠️  WordPress API error ${res.status}`);
-      return false;
-    }
-
+    if (!res.ok) return false;
     const posts = await res.json();
     if (Array.isArray(posts) && posts.length > 0) {
-      console.log(`⚠️  Slug already exists! Post ID: ${posts[0].id}`);
+      console.log(`⚠️  Slug exists — Post ID: ${posts[0].id}`);
       return true;
     }
     console.log(`✅ Slug is unique`);
@@ -363,212 +390,161 @@ async function retry(fn, retries = 3, label = "operation", delayMs = 1000) {
       return await fn();
     } catch (err) {
       if (i === retries - 1) throw err;
-      const delay = delayMs * (2 ** i);
-      console.log(`⚠️  ${label} failed (attempt ${i + 1}/${retries}) — retrying in ${Math.round(delay / 1000)}s`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      const wait = delayMs * (2 ** i);
+      console.log(`⚠️  ${label} failed (${i + 1}/${retries}) — retry in ${Math.round(wait / 1000)}s`);
+      await new Promise(r => setTimeout(r, wait));
     }
   }
 }
 
 // ============================================
-// GEMINI API (replaces callClaude)
+// GEMINI API
 // ============================================
-async function callClaude(systemPrompt, userPrompt, maxTokens = 2500) {
-  console.log(`📡 Calling Gemini API (gemini-1.5-flash)...`);
+async function callGemini(systemPrompt, userPrompt, maxTokens = 2500) {
+  console.log(`📡 Calling Gemini (gemini-2.5-flash-lite)…`);
 
   for (let attempt = 1; attempt <= GEMINI_RETRIES; attempt++) {
     try {
-      const response = await fetchWithTimeout(
+      const res = await fetchWithTimeout(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_KEY}`,
         {
-          method: "POST",
+          method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `${systemPrompt}\n\n${userPrompt}`
-              }]
-            }],
-            generationConfig: {
-              maxOutputTokens: maxTokens,
-              temperature: 0.7
-            }
+          body:    JSON.stringify({
+            contents:         [{ parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+            generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 }
           })
         },
         API_TIMEOUT_MS
       );
 
-      const data = await response.json();
+      const data = await res.json();
+      if (res.status === 429) throw new Error("Gemini rate limit hit");
 
-      // Handle quota/rate limit errors
-      if (response.status === 429) {
-        throw new Error("Gemini rate limit hit");
-      }
-
-      if (
-        response.ok &&
-        data.candidates?.[0]?.content?.parts?.[0]?.text
-      ) {
+      if (res.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
         const text = data.candidates[0].content.parts[0].text;
-        console.log(`✅ Gemini succeeded. Characters: ${text.length}`);
+        console.log(`✅ Gemini ok — ${text.length} chars`);
         return text;
       }
-
-      throw new Error(`Gemini Error: ${JSON.stringify(data)}`);
+      throw new Error(`Gemini error: ${JSON.stringify(data)}`);
 
     } catch (err) {
-      const isLastRetry = attempt === GEMINI_RETRIES;
-      if (isLastRetry) {
+      if (attempt === GEMINI_RETRIES) {
         console.log(`❌ Gemini failed after ${GEMINI_RETRIES} retries`);
         throw err;
       }
-
-      const waitTime = GEMINI_INITIAL_DELAY * (2 ** (attempt - 1));
-      console.log(`⚠️  Gemini failed (attempt ${attempt}/${GEMINI_RETRIES}) — retrying in ${Math.round(waitTime / 1000)}s`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+      const wait = GEMINI_INITIAL_DELAY * (2 ** (attempt - 1));
+      console.log(`⚠️  Gemini attempt ${attempt}/${GEMINI_RETRIES} — retry in ${Math.round(wait / 1000)}s`);
+      await new Promise(r => setTimeout(r, wait));
     }
   }
+}
 
-  throw new Error("Gemini API retries exhausted");
+function cleanGeminiHtml(raw) {
+  return (raw || "").replace(/```html/gi, "").replace(/```/g, "").trim();
 }
 
 // ============================================
-// PEXELS IMAGE FETCH
+// PEXELS / IMAGE
 // ============================================
-async function fetchImageFromPexels(imageQuery) {
+async function fetchImageFromPexels(q) {
   if (!PEXELS_API_KEY) return null;
-
-  console.log(`🖼️  Fetching from Pexels: "${imageQuery}"...`);
+  console.log(`🖼️  Pexels: "${q}"…`);
   try {
-    const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(imageQuery)}&per_page=5`;
-    const res = await fetchWithTimeout(url, {
-      headers: { Authorization: PEXELS_API_KEY }
-    }, FETCH_TIMEOUT_MS);
-
-    if (res.status === 401) {
-      console.log("⚠️  Pexels 401 Unauthorized");
-      return null;
-    }
+    const res = await fetchWithTimeout(
+      `https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=5`,
+      { headers: { Authorization: PEXELS_API_KEY } },
+      FETCH_TIMEOUT_MS
+    );
+    if (res.status === 401) { console.log("⚠️  Pexels 401"); return null; }
     if (!res.ok) return null;
-
     const data = await res.json();
-    if (data.photos && data.photos.length > 0) {
+    if (data.photos?.length > 0) {
       const best = data.photos.sort((a, b) => b.width - a.width)[0];
-      const imageUrl = best.src.large2x || best.src.large || best.src.medium;
-      if (imageUrl) {
-        console.log(`✅ Pexels found image`);
-        return imageUrl;
-      }
+      const url  = best.src.large2x || best.src.large || best.src.medium;
+      if (url) { console.log(`✅ Pexels image found`); return url; }
     }
-  } catch (err) {
-    console.log(`⚠️  Pexels error: ${err.message}`);
-  }
+  } catch (err) { console.log(`⚠️  Pexels: ${err.message}`); }
   return null;
 }
 
 async function fetchImage(imageQuery) {
-  if (!imageQuery) {
-    imageQuery = "tech product review";
-  }
-
-  const attempts = [
-    imageQuery,
-    `${imageQuery} product`,
-    `${imageQuery} review`,
-    "tech gadget product"
-  ];
-
+  if (!imageQuery) imageQuery = "tech product review";
   if (PEXELS_API_KEY) {
-    for (const q of attempts) {
-      const imageUrl = await fetchImageFromPexels(q);
-      if (imageUrl) return imageUrl;
+    for (const q of [imageQuery, `${imageQuery} product`, `${imageQuery} review`, "lifestyle product"]) {
+      const url = await fetchImageFromPexels(q);
+      if (url) return url;
     }
   }
-
-  console.log(`🖼️  Using Unsplash fallback`);
+  console.log(`🖼️  Unsplash fallback`);
   return `https://source.unsplash.com/featured/1200x600/?${encodeURIComponent(imageQuery)}`;
 }
 
 async function uploadImageToWP(auth, imageUrl, altText) {
   try {
-    console.log(`📤 Uploading image...`);
+    console.log(`📤 Uploading image…`);
     const imgRes = await fetchWithTimeout(imageUrl, {}, FETCH_TIMEOUT_MS);
-    if (!imgRes.ok) throw new Error(`Image download failed`);
-
-    const arrayBuf = await imgRes.arrayBuffer();
-    const imgBuffer = Buffer.from(arrayBuf);
-
-    const uploadRes = await retry(() =>
+    if (!imgRes.ok) throw new Error("Image download failed");
+    const buf = Buffer.from(await imgRes.arrayBuffer());
+    const up  = await retry(() =>
       fetchWithTimeout(`${WORDPRESS_URL}/wp-json/wp/v2/media`, {
-        method: "POST",
+        method:  "POST",
         headers: {
-          "Authorization":       `Basic ${auth}`,
+          Authorization:         `Basic ${auth}`,
           "Content-Disposition": `attachment; filename="featured-image.jpg"`,
           "Content-Type":        "image/jpeg"
         },
-        body: imgBuffer
+        body: buf
       }, 20000)
-    , 2, "WordPress media upload", 2000);
-
-    if (!uploadRes.ok) throw new Error(`Media upload failed`);
-
-    const media = await uploadRes.json();
+    , 2, "WP media upload", 2000);
+    if (!up.ok) throw new Error("Media upload failed");
+    const media = await up.json();
     if (media.id) {
       console.log(`✅ Image uploaded — ID: ${media.id}`);
       return { id: media.id, url: media.source_url };
     }
-  } catch (e) {
-    console.log(`⚠️  Image upload skipped: ${e.message}`);
-  }
+  } catch (e) { console.log(`⚠️  Image upload skipped: ${e.message}`); }
   return null;
 }
 
 // ============================================
-// CONTENT GENERATION
+// CONTENT GENERATORS
 // ============================================
-async function generatePost(topic, imageUrl) {
-  console.log(`\n📝 Generating content for: ${topic.product}...`);
 
-  const systemPrompt = `You are an expert SEO content writer for Teja Reviews (tejareviews.in).
-Your goal is to write a high-converting, helpful product review for Indian buyers in 2026.
+// ── 1. Review Post ────────────────────────
+async function generateReviewPost(topic, imageUrl) {
+  console.log(`\n📝 Generating Review: ${topic.product}…`);
 
+  const sys = `You are an expert SEO content writer for Teja Reviews (tejareviews.in).
+Write a high-converting product review for Indian buyers in ${SEO_YEAR}.
 RULES:
-- Use Indian English and reference Indian context (weather, homes, offices).
-- Tone: Professional yet conversational (fan-first).
-- Format: Strictly use HTML (h2, h3, p, ul, li). No markdown. No backticks. No code fences.
+- Indian English; reference Indian context (weather, homes, offices, Indian budgets).
+- Tone: Professional yet conversational.
+- Format: Strictly HTML (h2, h3, p, ul, li, table). No markdown, no backticks, no code fences.
 - Length: 900–1200 words.
-- Comparison: Compare value with other popular products in India.
 - Structure:
-  1. Quick Verdict (with rating out of 5)
-  2. Key Specifications (HTML Table)
+  1. Quick Verdict (rating out of 5)
+  2. Key Specifications (HTML table)
   3. Design & Build Quality
   4. Performance & Daily Usage
-  5. Pros and Cons (two separate ul lists)
+  5. Pros and Cons (two separate <ul> lists)
   6. Who Should Buy? (Perfect For / Skip If)
   7. Final Verdict (mention Amazon India availability)
-- Start directly from <h2>Quick Verdict</h2>. Do not add any preamble.`;
+- Start directly from <h2>Quick Verdict</h2>. No preamble.`;
 
-  const userPrompt = `Write a full product review for the following:
-
-Product: ${topic.product}
+  const usr = `Product: ${topic.product}
 Primary Keyword: ${topic.keywords[0]}
 Secondary Keyword: ${topic.keywords[1] || ""}
 Price Range: ${topic.price}
 Year: ${SEO_YEAR}
 Amazon Affiliate Tag: ${AFFILIATE_TAG}`;
 
-  const rawContent = await callClaude(systemPrompt, userPrompt, 2500);
+  const html = cleanGeminiHtml(await callGemini(sys, usr, 2500));
 
-  // Strip any accidental markdown fences Gemini may add
-  const cleanContent = rawContent
-    .replace(/```html/gi, "")
-    .replace(/```/g, "")
-    .trim();
-
-  const imageHtml = imageUrl ? `
+  const imageBlock = imageUrl ? `
 <figure style="margin:2rem 0;text-align:center;">
-  <img src="${imageUrl}" alt="${topic.product} Review India ${SEO_YEAR}" style="width:100%;max-width:800px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1);" loading="lazy" />
-  <figcaption style="font-size:13px;color:#666;margin-top:10px;">${topic.product} — Available in India for ${topic.price}</figcaption>
+  <img src="${imageUrl}" alt="${topic.product} Review India ${SEO_YEAR}" style="width:100%;max-width:800px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,.1);" loading="lazy"/>
+  <figcaption style="font-size:13px;color:#666;margin-top:8px;">${topic.product} — Available in India for ${topic.price}</figcaption>
 </figure>` : "";
 
   const shopButtons = `
@@ -577,53 +553,330 @@ Amazon Affiliate Tag: ${AFFILIATE_TAG}`;
   <a href="https://www.flipkart.com/search?q=${encodeURIComponent(topic.product)}" target="_blank" rel="noopener noreferrer" style="background:#2874F0;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;">🛍️ Check Flipkart Price</a>
 </div>`;
 
-  // Inject image after first H2, shop buttons after second H2
-  let finalHtml = cleanContent
-    .replace("</h2>", `</h2>${imageHtml}`)
+  let body = html
+    .replace("</h2>", `</h2>${imageBlock}`)
     .replace("</h2>", `</h2>${shopButtons}`);
 
-  // Footer
-  finalHtml += `
+  body += `
 <hr style="margin:3rem 0;">
 <div style="background:#f9f9f9;padding:20px;border-radius:10px;">
   <h3 style="margin-top:0;">Related Buying Guides</h3>
   <ul>
-    <li><a href="/category/${topic.category.toLowerCase().replace(/\s+/g, "-")}/">Best ${topic.category} Products in India</a></li>
+    <li><a href="/category/${slugify(topic.category)}/">Best ${topic.category} Products in India</a></li>
     <li><a href="/">Latest Reviews on Teja Reviews</a></li>
   </ul>
 </div>
-
 <script type="application/ld+json">
 {
-  "@context": "https://schema.org",
-  "@type": "Product",
-  "name": "${topic.product}",
-  "description": "Expert review of ${topic.product} for Indian consumers in ${SEO_YEAR}.",
-  "brand": { "@type": "Brand", "name": "Teja Reviews" },
-  "offers": {
-    "@type": "Offer",
-    "priceCurrency": "INR",
-    "price": "${topic.price.split("–")[0].replace(/[^0-9]/g, "")}",
-    "availability": "https://schema.org/InStock"
-  }
+  "@context":"https://schema.org",
+  "@type":"Product",
+  "name":"${topic.product}",
+  "description":"Expert review of ${topic.product} for Indian consumers in ${SEO_YEAR}.",
+  "brand":{"@type":"Brand","name":"Teja Reviews"},
+  "offers":{"@type":"Offer","priceCurrency":"INR","price":"${topic.price.split("–")[0].replace(/[^0-9]/g,"")}","availability":"https://schema.org/InStock"}
 }
 </script>`;
 
-  console.log(`✅ Content generated — ${finalHtml.length} chars`);
-  return finalHtml;
+  console.log(`✅ Review generated — ${body.length} chars`);
+  return body;
+}
+
+// ── 2. Buying Guide Post ──────────────────
+async function generateBuyingGuidePost(topic, imageUrl) {
+  console.log(`\n📝 Generating Buying Guide: Best ${topic.product}…`);
+
+  const sys = `You are an expert affiliate content writer for Teja Reviews (tejareviews.in).
+Write a comprehensive buying guide for Indian buyers in ${SEO_YEAR}.
+RULES:
+- Indian English; mention Indian climate, lifestyle, budget-consciousness, INR pricing.
+- Tone: Helpful, authoritative, trust-building.
+- Format: Strictly HTML (h2, h3, p, ul, li, table). No markdown, no backticks, no code fences.
+- Length: 1100–1400 words.
+- Structure:
+  1. <h2>Why Trust This Guide?</h2> — brief intro on how picks were selected
+  2. <h2>Top 5 Best ${topic.product} in India ${SEO_YEAR}</h2> — each pick as <h3> with:
+       · 2–3 sentence description
+       · Key specs as <ul>
+       · "Best for:" one-liner
+       · Amazon India CTA button using affiliate tag ${AFFILIATE_TAG}
+  3. <h2>Comparison Table</h2> — HTML <table>: Name | Price (INR) | Key Feature | Best For | Rating
+  4. <h2>How to Choose the Right ${topic.product}</h2> — 4–5 key buying factors
+  5. <h2>Who Should Buy What?</h2> — 3–4 Indian buyer personas
+  6. <h2>Final Verdict</h2> — top pick recommendation with Amazon India link
+- Start from <h2>Why Trust This Guide?</h2>. No preamble.`;
+
+  const usr = `Product Category: ${topic.product}
+Price Range: ${topic.price}
+Focus Keyword: best ${topic.product.toLowerCase()} India
+Year: ${SEO_YEAR}
+Amazon Affiliate Tag: ${AFFILIATE_TAG}`;
+
+  const html = cleanGeminiHtml(await callGemini(sys, usr, 3000));
+
+  const imageBlock = imageUrl ? `
+<figure style="margin:2rem 0;text-align:center;">
+  <img src="${imageUrl}" alt="Best ${topic.product} India ${SEO_YEAR}" style="width:100%;max-width:800px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,.1);" loading="lazy"/>
+  <figcaption style="font-size:13px;color:#666;margin-top:8px;">Best ${topic.product} in India — Price Range: ${topic.price}</figcaption>
+</figure>` : "";
+
+  const shopButton = `
+<div style="text-align:center;margin:2rem 0;">
+  <a href="https://www.amazon.in/s?k=${encodeURIComponent("best " + topic.product)}&tag=${AFFILIATE_TAG}" target="_blank" rel="noopener noreferrer" style="background:#FF9900;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;">🛒 Shop All Picks on Amazon India</a>
+</div>`;
+
+  let body = html
+    .replace("</h2>", `</h2>${imageBlock}`)
+    .replace("</h2>", `</h2>${shopButton}`);
+
+  body += `
+<hr style="margin:3rem 0;">
+<div style="background:#f9f9f9;padding:20px;border-radius:10px;">
+  <h3 style="margin-top:0;">Related Reviews</h3>
+  <ul>
+    <li><a href="/category/${slugify(topic.category)}/">All ${topic.category} Reviews</a></li>
+    <li><a href="/">Latest Reviews on Teja Reviews</a></li>
+  </ul>
+</div>`;
+
+  console.log(`✅ Buying guide generated — ${body.length} chars`);
+  return body;
+}
+
+// ── 3. Comparison Post ────────────────────
+async function generateComparisonPost(topicA, topicB, imageUrl) {
+  console.log(`\n📝 Generating Comparison: ${topicA.product} vs ${topicB.product}…`);
+
+  const sys = `You are an expert product comparison writer for Teja Reviews (tejareviews.in).
+Write a detailed vs. article for Indian buyers in ${SEO_YEAR}.
+RULES:
+- Indian English; consider Indian pricing, climate, usage patterns.
+- Tone: Fair, balanced, with a decisive final verdict.
+- Format: Strictly HTML (h2, h3, p, ul, li, table). No markdown, no backticks, no code fences.
+- Length: 1000–1300 words.
+- Structure:
+  1. <h2>Quick Verdict</h2> — which wins and for whom (2–3 sentences)
+  2. <h2>At a Glance: Side-by-Side</h2> — HTML <table> (Feature | ${topicA.product} | ${topicB.product})
+     Rows: Price Range · Best For · Key Feature · Amazon Availability · Our Rating
+  3. <h2>${topicA.product}: Strengths & Weaknesses</h2> — 150 words + pros/cons <ul>
+  4. <h2>${topicB.product}: Strengths & Weaknesses</h2> — 150 words + pros/cons <ul>
+  5. <h2>Head-to-Head: Category Winners</h2> — 5 categories with a winner declared:
+     Value for Money · Performance · Durability · Ease of Use · India Availability
+  6. <h2>Who Should Choose ${topicA.product}?</h2> — 3 bullet points
+  7. <h2>Who Should Choose ${topicB.product}?</h2> — 3 bullet points
+  8. <h2>Final Verdict</h2> — clear recommendation; Amazon India links for both (tag: ${AFFILIATE_TAG})
+- Start from <h2>Quick Verdict</h2>. No preamble.`;
+
+  const usr = `Product A: ${topicA.product} (${topicA.price})
+Product B: ${topicB.product} (${topicB.price})
+Focus Keyword: ${topicA.product.toLowerCase()} vs ${topicB.product.toLowerCase()} India
+Year: ${SEO_YEAR}
+Amazon Affiliate Tag: ${AFFILIATE_TAG}`;
+
+  const html = cleanGeminiHtml(await callGemini(sys, usr, 3000));
+
+  const imageBlock = imageUrl ? `
+<figure style="margin:2rem 0;text-align:center;">
+  <img src="${imageUrl}" alt="${topicA.product} vs ${topicB.product} India ${SEO_YEAR}" style="width:100%;max-width:800px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,.1);" loading="lazy"/>
+  <figcaption style="font-size:13px;color:#666;margin-top:8px;">${topicA.product} vs ${topicB.product} — Which is the better buy in India?</figcaption>
+</figure>` : "";
+
+  const shopButtons = `
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin:2rem 0;justify-content:center;">
+  <a href="https://www.amazon.in/s?k=${encodeURIComponent(topicA.product)}&tag=${AFFILIATE_TAG}" target="_blank" rel="noopener noreferrer" style="background:#FF9900;color:#000;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;">🛒 Buy ${topicA.product} on Amazon</a>
+  <a href="https://www.amazon.in/s?k=${encodeURIComponent(topicB.product)}&tag=${AFFILIATE_TAG}" target="_blank" rel="noopener noreferrer" style="background:#FF9900;color:#000;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;">🛒 Buy ${topicB.product} on Amazon</a>
+</div>`;
+
+  let body = html
+    .replace("</h2>", `</h2>${imageBlock}`)
+    .replace("</h2>", `</h2>${shopButtons}`);
+
+  body += `
+<hr style="margin:3rem 0;">
+<div style="background:#f9f9f9;padding:20px;border-radius:10px;">
+  <h3 style="margin-top:0;">More Comparisons</h3>
+  <ul>
+    <li><a href="/category/${slugify(topicA.category)}/">All ${topicA.category} Reviews</a></li>
+    <li><a href="/">Latest on Teja Reviews</a></li>
+  </ul>
+</div>`;
+
+  console.log(`✅ Comparison generated — ${body.length} chars`);
+  return body;
 }
 
 // ============================================
-// META GENERATION
+// META GENERATORS
 // ============================================
-async function generateMeta(topic) {
+function generateReviewMeta(topic) {
   return {
-    title: `${topic.product} Review India ${SEO_YEAR}: Worth Buying?`,
-    slug: buildSeoSlug(topic.product),
-    metaDescription: `${topic.product} review India ${SEO_YEAR}. Check price, features, pros, cons and whether it is worth buying in India.`,
-    focusKeyword: topic.keywords[0],
-    tags: [topic.keywords[0], topic.keywords[1] || topic.product]
+    title:           `${topic.product} Review India ${SEO_YEAR}: Worth Buying?`,
+    slug:            buildReviewSlug(topic.product),
+    metaDescription: `${topic.product} review India ${SEO_YEAR}. Check price, features, pros & cons and whether it is worth buying in India.`,
+    focusKeyword:    topic.keywords[0],
+    tags:            [topic.keywords[0], topic.keywords[1] || topic.product],
+    category:        topic.category
   };
+}
+
+function generateBuyingGuideMeta(topic) {
+  return {
+    title:           `Best ${topic.product} in India ${SEO_YEAR}: Top 5 Picks & Buying Guide`,
+    slug:            buildBuyingGuideSlug(topic.product),
+    metaDescription: `Best ${topic.product.toLowerCase()} in India ${SEO_YEAR}? Our expert guide covers top 5 picks, INR prices, pros & cons to help you choose right.`,
+    focusKeyword:    `best ${topic.product.toLowerCase()} India`,
+    tags:            [`best ${topic.product.toLowerCase()} India`, topic.keywords[0], topic.category.toLowerCase()],
+    category:        topic.category
+  };
+}
+
+function generateComparisonMeta(topicA, topicB) {
+  return {
+    title:           `${topicA.product} vs ${topicB.product} India ${SEO_YEAR}: Which One to Buy?`,
+    slug:            buildComparisonSlug(topicA.product, topicB.product),
+    metaDescription: `${topicA.product} vs ${topicB.product} India ${SEO_YEAR}: specs, price & pros/cons compared. Find out which is the better buy for Indian consumers.`,
+    focusKeyword:    `${topicA.product.toLowerCase()} vs ${topicB.product.toLowerCase()} India`,
+    tags:            [`${topicA.product.toLowerCase()} vs ${topicB.product.toLowerCase()}`, topicA.keywords[0], topicB.keywords[0]],
+    category:        topicA.category
+  };
+}
+
+// ============================================
+// PHASE 2 — FAQ BLOCK (separate Gemini call)
+// ============================================
+async function generateFAQBlock(productContext, postType) {
+  console.log(`\n❓ Generating FAQ block: ${productContext}…`);
+  try {
+    await new Promise(r => setTimeout(r, GEMINI_CALL_DELAY));
+
+    const context =
+      postType === "buying_guide" ? `buying guide for ${productContext}` :
+      postType === "comparison"   ? `comparison of ${productContext}`    :
+                                    `review of ${productContext}`;
+
+    const sys = `You are an SEO expert writing FAQ sections for an Indian affiliate review blog.
+Generate exactly 5 FAQ questions and answers for a ${context}.
+RULES:
+- Questions must target "People Also Ask" style queries Indian buyers search on Google.
+- Answers: 2–3 sentences, helpful, factual, India-relevant.
+- Output ONLY a single <div class="faq-block"> containing exactly 5 <div class="faq-item"> elements.
+- Each faq-item: <h3 class="faq-question">QUESTION</h3><p class="faq-answer">ANSWER</p>
+- No markdown, no code fences, no preamble, no text outside the wrapper div.`;
+
+    const usr = `Topic: ${productContext} (India, ${SEO_YEAR})`;
+
+    const raw   = cleanGeminiHtml(await callGemini(sys, usr, 1000));
+    const qList = [...raw.matchAll(/<h3[^>]*>(.*?)<\/h3>/gs)].map(m => m[1].replace(/<[^>]+>/g, "").trim());
+    const aList = [...raw.matchAll(/<p[^>]*class="faq-answer"[^>]*>(.*?)<\/p>/gs)].map(m => m[1].replace(/<[^>]+>/g, "").trim());
+
+    const pairs = [];
+    for (let i = 0; i < Math.min(qList.length, aList.length); i++) {
+      if (qList[i] && aList[i]) pairs.push({ q: qList[i], a: aList[i] });
+    }
+
+    const schema = pairs.length > 0 ? `
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"FAQPage",
+  "mainEntity":[${pairs.map(p => `
+    {"@type":"Question","name":${JSON.stringify(p.q)},"acceptedAnswer":{"@type":"Answer","text":${JSON.stringify(p.a)}}}`).join(",")}
+  ]
+}
+</script>` : "";
+
+    console.log(`✅ FAQ block generated (${pairs.length} items)`);
+    return `
+<div style="background:#f5f9ff;border:1px solid #d0e4ff;border-radius:12px;padding:24px;margin:2rem 0;">
+  <h2 style="margin-top:0;color:#1a1a2e;">❓ Frequently Asked Questions</h2>
+  ${raw}
+</div>
+${schema}`;
+
+  } catch (err) {
+    console.log(`⚠️  FAQ generation failed: ${err.message} — continuing without FAQ`);
+    return "";
+  }
+}
+
+// ============================================
+// PHASE 2 — INTERNAL LINKS (Gemini call post-publish)
+// ============================================
+async function generateInternalLinks(auth, currentPostTitle) {
+  console.log(`\n🔗 Generating internal links…`);
+  try {
+    const res = await fetchWithTimeout(
+      `${WORDPRESS_URL}/wp-json/wp/v2/posts?per_page=10&orderby=date&order=desc&status=publish`,
+      { headers: { Authorization: `Basic ${auth}` } },
+      15000
+    );
+    if (!res.ok) return "";
+
+    const posts = await res.json();
+    if (!Array.isArray(posts) || posts.length === 0) return "";
+
+    // Filter out the just-published post
+    const candidates = posts
+      .filter(p => !p.title.rendered.toLowerCase().includes(currentPostTitle.toLowerCase().slice(0, 20)))
+      .slice(0, 10);
+
+    if (candidates.length === 0) return "";
+
+    const postList = candidates.map(p => `- "${p.title.rendered}": ${p.link}`).join("\n");
+
+    await new Promise(r => setTimeout(r, GEMINI_CALL_DELAY));
+
+    const sys = `You are an SEO content strategist for an Indian affiliate review blog.
+Select the 3 most topically relevant posts to internally link from a post titled "${currentPostTitle}".
+Output ONLY a valid HTML <ul> with exactly 3 <li><a href="EXACT_URL">Descriptive anchor text</a></li> items.
+Use keyword-rich anchor text — NOT the full post title verbatim. No preamble, no markdown, nothing outside the <ul>.`;
+
+    const usr = `Current post: "${currentPostTitle}"\n\nAvailable posts:\n${postList}`;
+
+    const raw = cleanGeminiHtml(await callGemini(sys, usr, 400));
+    console.log(`✅ Internal links generated`);
+
+    return `
+<div style="background:#fff8f0;border:1px solid #ffe0b2;border-radius:12px;padding:24px;margin:2rem 0;">
+  <h3 style="margin-top:0;color:#e65100;">📚 You Might Also Like</h3>
+  ${raw}
+</div>`;
+
+  } catch (err) {
+    console.log(`⚠️  Internal links failed: ${err.message}`);
+    return "";
+  }
+}
+
+// ============================================
+// PHASE 2 — INDEXNOW PING
+// ============================================
+async function pingIndexNow(url) {
+  if (!INDEXNOW_KEY) {
+    console.log("⚠️  INDEXNOW_KEY not set — skipping IndexNow ping");
+    return;
+  }
+  try {
+    console.log(`📡 Pinging IndexNow: ${url}`);
+    const res = await fetchWithTimeout(
+      "https://api.indexnow.org/indexnow",
+      {
+        method:  "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body:    JSON.stringify({
+          host:        "tejareviews.in",
+          key:         INDEXNOW_KEY,
+          keyLocation: `https://tejareviews.in/${INDEXNOW_KEY}.txt`,
+          urlList:     [url]
+        })
+      },
+      10000
+    );
+    console.log(res.ok || res.status === 202
+      ? `✅ IndexNow ping ok (${res.status})`
+      : `⚠️  IndexNow status: ${res.status}`);
+  } catch (err) {
+    console.log(`⚠️  IndexNow failed: ${err.message}`);
+  }
 }
 
 // ============================================
@@ -631,91 +884,72 @@ async function generateMeta(topic) {
 // ============================================
 async function getCategoryId(auth, name) {
   try {
-    // Search for existing category
-    const res = await fetchWithTimeout(
+    const res  = await fetchWithTimeout(
       `${WORDPRESS_URL}/wp-json/wp/v2/categories?search=${encodeURIComponent(name)}`,
-      { headers: { "Authorization": `Basic ${auth}` } },
+      { headers: { Authorization: `Basic ${auth}` } },
       15000
     );
     const cats = await res.json();
-    console.log(`🔍 Category search result:`, JSON.stringify(cats).slice(0, 200));
-    
-    if (Array.isArray(cats) && cats.length > 0) {
-      return parseInt(cats[0].id, 10);
-    }
+    console.log(`🔍 Category search:`, JSON.stringify(cats).slice(0, 200));
+    if (Array.isArray(cats) && cats.length > 0) return parseInt(cats[0].id, 10);
 
-    // Create new category
-    const cr = await fetchWithTimeout(
+    const cr     = await fetchWithTimeout(
       `${WORDPRESS_URL}/wp-json/wp/v2/categories`,
       {
         method:  "POST",
-        headers: { "Authorization": `Basic ${auth}`, "Content-Type": "application/json" },
-        body:    JSON.stringify({ name, slug: name.toLowerCase().replace(/\s+/g, "-") })
+        headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+        body:    JSON.stringify({ name, slug: slugify(name) })
       },
       15000
     );
-   const newCat = await cr.json();
-   console.log(`🔍 New category result:`, JSON.stringify(newCat).slice(0, 200));
-
-// If term already exists, WordPress returns term_id inside data
-    if (newCat.code === "term_exists") {
-      return parseInt(newCat.data.term_id, 10);
-    }
+    const newCat = await cr.json();
+    console.log(`🔍 New category:`, JSON.stringify(newCat).slice(0, 200));
+    if (newCat.code === "term_exists") return parseInt(newCat.data.term_id, 10);
     return parseInt(newCat.id, 10);
-
   } catch (err) {
     console.log(`⚠️  getCategoryId failed: ${err.message}`);
-    return 1; // fallback to default "Uncategorized" category
+    return 1; // fallback: Uncategorized
   }
 }
 
 async function getTagIds(auth, tags) {
-  const promises = tags.slice(0, 3).map(async (tag) => {
+  const ids = await Promise.all(tags.slice(0, 3).map(async (tag) => {
     try {
       const r = await fetchWithTimeout(
         `${WORDPRESS_URL}/wp-json/wp/v2/tags`,
         {
           method:  "POST",
-          headers: { "Authorization": `Basic ${auth}`, "Content-Type": "application/json" },
+          headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
           body:    JSON.stringify({ name: tag })
         },
         15000
       );
       const t = await r.json();
-      if (t.id) return t.id;
-      if (t.code === "term_exists") return t.data.term_id;
-    } catch {
-      return null;
-    }
-  });
-
-  const ids = await Promise.all(promises);
-  return ids.filter(id => id !== null);
+      if (t.id)                     return parseInt(t.id, 10);
+      if (t.code === "term_exists") return parseInt(t.data.term_id, 10);
+    } catch { return null; }
+  }));
+  return ids.filter(Boolean);
 }
 
-// ============================================
-// PUBLISH TO WORDPRESS
-// ============================================
-async function publishToWordPress(topic, content, meta, featuredImageId) {
-  console.log(`\n🚀 Publishing to tejareviews.in...`);
-  const auth = Buffer.from(`${WP_USERNAME}:${WP_APP_PASS}`).toString("base64");
+async function publishToWordPress(content, meta, featuredImageId, auth) {
+  console.log(`\n🚀 Publishing to tejareviews.in…`);
 
-  let slug = buildSeoSlug(topic.product);
-
+  let slug = meta.slug;
   if (await slugExistsInWordPress(auth, slug)) {
-    console.log(`⚠️  Duplicate slug found for ${slug}, adding suffix`);
+    console.log(`⚠️  Duplicate slug — appending suffix`);
     slug = `${slug}-${Date.now().toString().slice(-4)}`;
   }
 
-  const categoryId = await getCategoryId(auth, topic.category);
-  console.log(`🔍 Category ID: ${categoryId} (type: ${typeof categoryId})`);
-  const tagIds = await getTagIds(auth, meta.tags);
+  const categoryId = await getCategoryId(auth, meta.category);
+  console.log(`🔍 Category ID: ${categoryId} (${typeof categoryId})`);
+  const tagIds    = await getTagIds(auth, meta.tags);
   const postTitle = ensureTitleHasYear(meta.title);
 
-  const postPayload = {
+  const payload = {
     title:      postTitle,
-    content:    content,
-    slug:       slug,
+    content,
+    slug,
     status:     "publish",
     categories: [categoryId],
     tags:       tagIds,
@@ -726,76 +960,156 @@ async function publishToWordPress(topic, content, meta, featuredImageId) {
       rank_math_robots:        ["index", "follow"]
     }
   };
+  if (featuredImageId) payload.featured_media = featuredImageId;
 
-  if (featuredImageId) {
-    postPayload.featured_media = featuredImageId;
-  }
-
-  const res = await retry(() =>
+  const res  = await retry(() =>
     fetchWithTimeout(`${WORDPRESS_URL}/wp-json/wp/v2/posts`, {
       method:  "POST",
-      headers: { "Authorization": `Basic ${auth}`, "Content-Type": "application/json" },
-      body:    JSON.stringify(postPayload)
+      headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+      body:    JSON.stringify(payload)
     }, 20000)
-  , 2, "WordPress post publish", 3000);
+  , 2, "WP post publish", 3000);
 
   const post = await res.json();
-  if (!res.ok) throw new Error(`WordPress error: ${JSON.stringify(post)}`);
+  if (!res.ok) throw new Error(`WordPress publish error: ${JSON.stringify(post)}`);
 
   console.log(`\n🎉 PUBLISHED!`);
   console.log(`📌 ${post.title.rendered}`);
   console.log(`🔗 ${WORDPRESS_URL}/${post.slug}/`);
-
   return post;
+}
+
+async function updatePostContent(auth, postId, newContent) {
+  try {
+    console.log(`📝 Appending internal links to post ${postId}…`);
+    const res = await fetchWithTimeout(
+      `${WORDPRESS_URL}/wp-json/wp/v2/posts/${postId}`,
+      {
+        method:  "PUT",
+        headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+        body:    JSON.stringify({ content: newContent })
+      },
+      20000
+    );
+    if (res.ok) {
+      console.log(`✅ Post updated with internal links`);
+    } else {
+      console.log(`⚠️  Post update failed: ${res.status}`);
+    }
+  } catch (err) {
+    console.log(`⚠️  Post update error: ${err.message}`);
+  }
 }
 
 // ============================================
 // MAIN
 // ============================================
 async function main() {
-  console.log("🚀 Starting Teja Reviews — Gemini Auto Poster v4");
-  console.log("=================================================");
+  console.log("🚀 Teja Reviews — Gemini Auto Poster v5");
+  console.log(`📋 POST_TYPE : ${POST_TYPE.toUpperCase()}`);
+  console.log("==========================================");
 
-  // Pre-flight checks
-  if (!GEMINI_KEY) {
-    throw new Error("Missing GEMINI_API_KEY environment variable");
-  }
-  if (!WP_APP_PASS) {
-    throw new Error("Missing WP_APP_PASSWORD environment variable");
-  }
+  if (!GEMINI_KEY)  throw new Error("Missing GEMINI_API_KEY");
+  if (!WP_APP_PASS) throw new Error("Missing WP_APP_PASSWORD");
 
-  const topic = getTodaysTopic();
-  console.log(`📦 Targeted Product: ${topic.product}`);
+  const auth = Buffer.from(`${WP_USERNAME}:${WP_APP_PASS}`).toString("base64");
 
-  if (isAlreadyPosted(topic.product)) {
-    console.log("⚠️  Product already posted. Skipping to prevent duplicate content.");
-    return;
-  }
+  let content, meta, imageUrl, uploadedImg, postKey, productContext;
 
   try {
-    const imageUrl = await fetchImage(topic.imageQuery);
-    const auth = Buffer.from(`${WP_USERNAME}:${WP_APP_PASS}`).toString("base64");
 
-    console.log("⚡ Running parallel tasks: AI content + meta + image upload...");
+    // ── REVIEW ──────────────────────────────────────────────────
+    if (POST_TYPE === "review") {
+      const topic = getTodaysTopic();
+      console.log(`📦 Topic: ${topic.product}`);
+      postKey        = topic.product;
+      productContext = topic.product;
 
-    const [content, meta, uploadedImg] = await Promise.all([
-      generatePost(topic, imageUrl),
-      generateMeta(topic),
-      uploadImageToWP(auth, imageUrl, topic.product)
-    ]);
+      if (isAlreadyPosted(postKey, "review")) {
+        console.log("⚠️  Review already posted today. Skipping.");
+        return;
+      }
 
-    const result = await publishToWordPress(topic, content, meta, uploadedImg?.id);
+      imageUrl = await fetchImage(topic.imageQuery);
+      [content, meta, uploadedImg] = await Promise.all([
+        generateReviewPost(topic, imageUrl),
+        Promise.resolve(generateReviewMeta(topic)),
+        uploadImageToWP(auth, imageUrl, topic.product)
+      ]);
 
-    markPosted(topic.product);
+    // ── BUYING GUIDE ─────────────────────────────────────────────
+    } else if (POST_TYPE === "buying_guide") {
+      const topic = getTodaysTopic();
+      console.log(`📦 Topic: Best ${topic.product}`);
+      postKey        = topic.product;
+      productContext = `best ${topic.product}`;
 
-    console.log("\n=================================================");
-    console.log(`✅ SUCCESS: ${topic.product} is live!`);
-    console.log(`🔗 URL: ${WORDPRESS_URL}/${result.slug}/`);
-    console.log("=================================================\n");
+      if (isAlreadyPosted(postKey, "buying_guide")) {
+        console.log("⚠️  Buying guide already posted today. Skipping.");
+        return;
+      }
+
+      imageUrl = await fetchImage(topic.imageQuery);
+      [content, meta, uploadedImg] = await Promise.all([
+        generateBuyingGuidePost(topic, imageUrl),
+        Promise.resolve(generateBuyingGuideMeta(topic)),
+        uploadImageToWP(auth, imageUrl, `Best ${topic.product}`)
+      ]);
+
+    // ── COMPARISON ───────────────────────────────────────────────
+    } else if (POST_TYPE === "comparison") {
+      const topicA = getTodaysTopic();
+      const topicB = getTomorrowsTopic();
+      console.log(`📦 Comparing: ${topicA.product} vs ${topicB.product}`);
+      postKey        = `${topicA.product} vs ${topicB.product}`;
+      productContext = postKey;
+
+      if (isAlreadyPosted(postKey, "comparison")) {
+        console.log("⚠️  Comparison already posted today. Skipping.");
+        return;
+      }
+
+      imageUrl = await fetchImage(topicA.imageQuery);
+      [content, meta, uploadedImg] = await Promise.all([
+        generateComparisonPost(topicA, topicB, imageUrl),
+        Promise.resolve(generateComparisonMeta(topicA, topicB)),
+        uploadImageToWP(auth, imageUrl, postKey)
+      ]);
+
+    } else {
+      throw new Error(`Unknown POST_TYPE: "${POST_TYPE}". Use: review | buying_guide | comparison`);
+    }
+
+    // ── FAQ BLOCK (sequential, 4s delay built-in) ────────────────
+    const faqBlock = await generateFAQBlock(productContext, POST_TYPE);
+    content = content + faqBlock;
+
+    // ── PUBLISH ──────────────────────────────────────────────────
+    const result  = await publishToWordPress(content, meta, uploadedImg?.id, auth);
+    const postUrl = `${WORDPRESS_URL}/${result.slug}/`;
+
+    // ── INTERNAL LINKS (sequential Gemini call after publish) ────
+    const internalLinks = await generateInternalLinks(auth, meta.title);
+    if (internalLinks) {
+      await updatePostContent(auth, result.id, content + internalLinks);
+    }
+
+    // ── INDEXNOW ─────────────────────────────────────────────────
+    await pingIndexNow(postUrl);
+
+    // ── MARK DONE ────────────────────────────────────────────────
+    markPosted(postKey, POST_TYPE);
+
+    console.log("\n==========================================");
+    console.log(`✅ SUCCESS — "${postKey}" is LIVE`);
+    console.log(`📋 Type : ${POST_TYPE.toUpperCase()}`);
+    console.log(`🔗 URL  : ${postUrl}`);
+    console.log("==========================================\n");
 
   } catch (err) {
     console.error("\n❌ CRITICAL ERROR:");
-    console.error(`Message: ${err.message}`);
+    console.error(`  ${err.message}`);
+    if (err.stack) console.error(err.stack);
     process.exit(1);
   }
 }
