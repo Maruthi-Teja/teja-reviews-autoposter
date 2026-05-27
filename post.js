@@ -636,7 +636,7 @@ async function getCategoryId(auth, name) {
     15000
   );
   const cats = await res.json();
-  if (cats.length > 0) return cats[0].id;
+  if (cats.length > 0) return parseInt(cats[0].id, 10);
 
   const cr = await fetchWithTimeout(
     `${WORDPRESS_URL}/wp-json/wp/v2/categories`,
@@ -647,7 +647,7 @@ async function getCategoryId(auth, name) {
     },
     15000
   );
-  return (await cr.json()).id;
+return parseInt((await cr.json()).id, 10);
 }
 
 async function getTagIds(auth, tags) {
