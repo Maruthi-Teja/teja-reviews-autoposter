@@ -379,7 +379,7 @@ async function callClaude(systemPrompt, userPrompt, maxTokens = 2500) {
   for (let attempt = 1; attempt <= GEMINI_RETRIES; attempt++) {
     try {
       const response = await fetchWithTimeout(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
