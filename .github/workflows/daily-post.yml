@@ -9,7 +9,8 @@ jobs:
   post:
     runs-on: ubuntu-latest
     env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       WP_APP_PASSWORD: ${{ secrets.WP_PASS }}
       WP_PASS: ${{ secrets.WP_PASS }}
       PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
