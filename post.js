@@ -27,7 +27,44 @@ const GEMINI_INITIAL_DELAY = 5000;
 const GEMINI_CALL_DELAY    = 4000; // between sequential Gemini calls (free-tier safety)
 
 // ============================================
-// 33 TRENDING PRODUCTS (2026)
+// PHASE 4 — TRENDING CONTEXT (1 Gemini call/day, cached)
+// ============================================
+const TRENDING_FILE = "./trending-context.json";
+
+async function getTrendingContext() {
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    if (fs.existsSync(TRENDING_FILE)) {
+      const cache = JSON.parse(fs.readFileSync(TRENDING_FILE, "utf-8"));
+      if (cache.date === today && cache.context) {
+        console.log(`📈 Using cached trending context (${today})`);
+        return cache.context;
+      }
+    }
+  } catch { /* ignore cache read errors */ }
+
+  console.log(`📈 Fetching fresh trending context for ${today}…`);
+  try {
+    await new Promise(r => setTimeout(r, GEMINI_CALL_DELAY));
+    const ctx = await callGemini(
+      `You are a market analyst tracking Indian e-commerce trends on Amazon India and Flipkart.`,
+      `What are the top trending consumer products being searched and bought in India right now in ${SEO_YEAR}?
+List 5 specific products with their approximate INR price and why they are trending (new launch, viral, festival, season).
+Format: 3-4 sentences of dense, specific context. Include product names, prices, and trends. No bullet points.`,
+      300
+    );
+    try {
+      fs.writeFileSync(TRENDING_FILE, JSON.stringify({ date: today, context: ctx }, null, 2));
+    } catch { /* ignore write errors in CI */ }
+    return ctx;
+  } catch (err) {
+    console.log(`⚠️  Trending context failed: ${err.message} — continuing without it`);
+    return "";
+  }
+}
+
+// ============================================
+// 48 TRENDING PRODUCTS (2026) — mixed categories
 // ============================================
 const TOPICS = [
   {
@@ -260,18 +297,139 @@ const TOPICS = [
     category:   "Sleep & Wellness",
     imageQuery: "weighted blanket sleep comfort cozy bed",
     keywords:   ["weighted blanket India review", "best weighted blanket for sleep", "gravity blanket"]
+  },
+  // ── Electronics batch (May 2026 trending) ──
+  {
+    product:    "Realme Buds Air 7",
+    price:      "₹1,499–₹2,499",
+    category:   "Tech & Audio",
+    imageQuery: "wireless tws earbuds white compact premium",
+    keywords:   ["realme buds air 7 review india", "best tws earbuds under 2500", "realme buds air 7 2026"]
+  },
+  {
+    product:    "CMF Buds 2 Plus",
+    price:      "₹1,999–₹2,999",
+    category:   "Tech & Audio",
+    imageQuery: "nothing cmf earbuds tws anc noise cancelling",
+    keywords:   ["cmf buds 2 plus review india", "best earbuds with anc under 3000", "cmf nothing earbuds 2026"]
+  },
+  {
+    product:    "Boat Nirvana Crown Earbuds",
+    price:      "₹1,299–₹2,499",
+    category:   "Tech & Audio",
+    imageQuery: "boat earbuds tws active noise cancellation",
+    keywords:   ["boat nirvana crown review india", "best boat earbuds 2026", "boat tws anc earbuds"]
+  },
+  {
+    product:    "Noise Pro 6R Smartwatch",
+    price:      "₹1,999–₹2,999",
+    category:   "Wearable Tech",
+    imageQuery: "noise smartwatch amoled display fitness health",
+    keywords:   ["noise pro 6r review india", "best smartwatch under 3000 india 2026", "noise smartwatch amoled"]
+  },
+  {
+    product:    "Redmi Watch 5 Active",
+    price:      "₹1,499–₹2,499",
+    category:   "Wearable Tech",
+    imageQuery: "xiaomi redmi smartwatch fitness tracker slim",
+    keywords:   ["redmi watch 5 active review india", "best smartwatch under 2000 india", "redmi watch 2026"]
+  },
+  {
+    product:    "Boat Chrome Iris Smartwatch",
+    price:      "₹1,499–₹2,299",
+    category:   "Wearable Tech",
+    imageQuery: "boat smartwatch amoled round bluetooth calling",
+    keywords:   ["boat chrome iris review india", "best boat smartwatch under 2500", "boat amoled watch 2026"]
+  },
+  {
+    product:    "Ambrane 20000mAh Power Bank",
+    price:      "₹999–₹1,999",
+    category:   "Mobile Accessories",
+    imageQuery: "power bank 20000mah slim fast charging portable",
+    keywords:   ["ambrane power bank review india", "best 20000mah power bank india 2026", "fast charging power bank"]
+  },
+  {
+    product:    "Fire-Boltt Ninja Smartwatch",
+    price:      "₹1,299–₹2,499",
+    category:   "Wearable Tech",
+    imageQuery: "fire boltt smartwatch bluetooth calling sports",
+    keywords:   ["fire boltt ninja review india", "best smartwatch under 2000 india", "fire boltt ninja 2026"]
+  },
+  {
+    product:    "Portronics GaN Charger 65W",
+    price:      "₹999–₹1,999",
+    category:   "Mobile Accessories",
+    imageQuery: "gan charger compact usb c fast charging white",
+    keywords:   ["portronics gan charger review india", "best 65w gan charger india 2026", "compact gan charger"]
+  },
+  {
+    product:    "Boat Stone 352 Bluetooth Speaker",
+    price:      "₹899–₹1,999",
+    category:   "Tech & Audio",
+    imageQuery: "portable bluetooth speaker outdoor waterproof bold",
+    keywords:   ["boat stone 352 review india", "best bluetooth speaker under 2000 india", "boat portable speaker 2026"]
+  },
+  {
+    product:    "Zebronics Zeb-Duke1 Gaming Headset",
+    price:      "₹999–₹1,999",
+    category:   "Tech & Gaming",
+    imageQuery: "rgb gaming headset 7.1 surround mic pc",
+    keywords:   ["zebronics zeb duke1 review india", "best gaming headset under 2000 india", "budget pc gaming headset"]
+  },
+  {
+    product:    "Ant Esports MK3400W Keyboard",
+    price:      "₹1,299–₹2,499",
+    category:   "Tech & Gaming",
+    imageQuery: "mechanical keyboard rgb backlit gaming compact tenkeyless",
+    keywords:   ["ant esports mk3400w review india", "best mechanical keyboard under 2500 india", "budget gaming keyboard 2026"]
+  },
+  {
+    product:    "Syska Smart LED Bulb",
+    price:      "₹399–₹999",
+    category:   "Smart Home Tech",
+    imageQuery: "smart led bulb wifi rgb color changing ceiling",
+    keywords:   ["syska smart bulb review india", "best smart led bulb india 2026", "wifi smart bulb under 1000"]
+  },
+  {
+    product:    "Boat Airdopes 141 Earbuds",
+    price:      "₹999–₹1,799",
+    category:   "Tech & Audio",
+    imageQuery: "boat airdopes tws earbuds lightweight compact white",
+    keywords:   ["boat airdopes 141 review india", "best earbuds under 2000 india 2026", "boat bestseller earbuds"]
+  },
+  {
+    product:    "Xiaomi Mi Smart Projector Mini",
+    price:      "₹14,999–₹22,000",
+    category:   "Home Entertainment",
+    imageQuery: "portable mini projector home cinema compact android",
+    keywords:   ["mi projector mini review india", "best portable projector under 20000 india 2026", "xiaomi projector india"]
   }
 ];
 
 // ============================================
-// TOPIC HELPERS
+// TOPIC HELPERS — reads topics.json if present (Phase 4B)
 // ============================================
+function getActiveTopics() {
+  try {
+    if (fs.existsSync("./topics.json")) {
+      const data = JSON.parse(fs.readFileSync("./topics.json", "utf-8"));
+      if (Array.isArray(data.topics) && data.topics.length > 0) {
+        console.log(`📅 Using monthly topics: ${data.generatedFor} (${data.topics.length} topics)`);
+        return data.topics;
+      }
+    }
+  } catch { /* fall through to hardcoded */ }
+  return TOPICS;
+}
+
 function getTodaysTopic() {
-  return TOPICS[Math.floor(Date.now() / 86400000) % TOPICS.length];
+  const pool = getActiveTopics();
+  return pool[Math.floor(Date.now() / 86400000) % pool.length];
 }
 
 function getTomorrowsTopic() {
-  return TOPICS[(Math.floor(Date.now() / 86400000) + 1) % TOPICS.length];
+  const pool = getActiveTopics();
+  return pool[(Math.floor(Date.now() / 86400000) + 1) % pool.length];
 }
 
 // ============================================
@@ -512,8 +670,12 @@ async function uploadImageToWP(auth, imageUrl, altText) {
 // ============================================
 
 // ── 1. Review Post ────────────────────────
-async function generateReviewPost(topic, imageUrl) {
+async function generateReviewPost(topic, imageUrl, trendingContext = "") {
   console.log(`\n📝 Generating Review: ${topic.product}…`);
+
+  const trendingNote = trendingContext
+    ? `\nTRENDING CONTEXT (weave naturally into the review where relevant):\n${trendingContext}\n`
+    : "";
 
   const sys = `You are an expert SEO content writer for Teja Reviews (tejareviews.in).
 Write a high-converting product review for Indian buyers in ${SEO_YEAR}.
@@ -530,7 +692,7 @@ RULES:
   5. Pros and Cons (two separate <ul> lists)
   6. Who Should Buy? (Perfect For / Skip If)
   7. Final Verdict (mention Amazon India availability)
-- Start directly from <h2>Quick Verdict</h2>. No preamble.`;
+- Start directly from <h2>Quick Verdict</h2>. No preamble.${trendingNote}`;
 
   const usr = `Product: ${topic.product}
 Primary Keyword: ${topic.keywords[0]}
@@ -582,8 +744,12 @@ Amazon Affiliate Tag: ${AFFILIATE_TAG}`;
 }
 
 // ── 2. Buying Guide Post ──────────────────
-async function generateBuyingGuidePost(topic, imageUrl) {
+async function generateBuyingGuidePost(topic, imageUrl, trendingContext = "") {
   console.log(`\n📝 Generating Buying Guide: Best ${topic.product}…`);
+
+  const trendingNote = trendingContext
+    ? `\nTRENDING CONTEXT (use to recommend currently popular picks):\n${trendingContext}\n`
+    : "";
 
   const sys = `You are an expert affiliate content writer for Teja Reviews (tejareviews.in).
 Write a comprehensive buying guide for Indian buyers in ${SEO_YEAR}.
@@ -591,7 +757,7 @@ RULES:
 - Indian English; mention Indian climate, lifestyle, budget-consciousness, INR pricing.
 - Tone: Helpful, authoritative, trust-building.
 - Format: Strictly HTML (h2, h3, p, ul, li, table). No markdown, no backticks, no code fences.
-- Length: 1100–1400 words.
+- Length: 1100–1400 words.${trendingNote}
 - Structure:
   1. <h2>Why Trust This Guide?</h2> — brief intro on how picks were selected
   2. <h2>Top 5 Best ${topic.product} in India ${SEO_YEAR}</h2> — each pick as <h3> with:
@@ -643,8 +809,12 @@ Amazon Affiliate Tag: ${AFFILIATE_TAG}`;
 }
 
 // ── 3. Comparison Post ────────────────────
-async function generateComparisonPost(topicA, topicB, imageUrl) {
+async function generateComparisonPost(topicA, topicB, imageUrl, trendingContext = "") {
   console.log(`\n📝 Generating Comparison: ${topicA.product} vs ${topicB.product}…`);
+
+  const trendingNote = trendingContext
+    ? `\nTRENDING CONTEXT (reference current market context in verdict):\n${trendingContext}\n`
+    : "";
 
   const sys = `You are an expert product comparison writer for Teja Reviews (tejareviews.in).
 Write a detailed vs. article for Indian buyers in ${SEO_YEAR}.
@@ -652,7 +822,7 @@ RULES:
 - Indian English; consider Indian pricing, climate, usage patterns.
 - Tone: Fair, balanced, with a decisive final verdict.
 - Format: Strictly HTML (h2, h3, p, ul, li, table). No markdown, no backticks, no code fences.
-- Length: 1000–1300 words.
+- Length: 1000–1300 words.${trendingNote}
 - Structure:
   1. <h2>Quick Verdict</h2> — which wins and for whom (2–3 sentences)
   2. <h2>At a Glance: Side-by-Side</h2> — HTML <table> (Feature | ${topicA.product} | ${topicB.product})
@@ -1018,6 +1188,9 @@ async function main() {
 
   try {
 
+    // ── PHASE 4C: fetch trending context once for all generators ──
+    const trendingCtx = await getTrendingContext();
+
     // ── REVIEW ──────────────────────────────────────────────────
     if (POST_TYPE === "review") {
       const topic = getTodaysTopic();
@@ -1032,7 +1205,7 @@ async function main() {
 
       imageUrl = await fetchImage(topic.imageQuery);
       [content, meta, uploadedImg] = await Promise.all([
-        generateReviewPost(topic, imageUrl),
+        generateReviewPost(topic, imageUrl, trendingCtx),
         Promise.resolve(generateReviewMeta(topic)),
         uploadImageToWP(auth, imageUrl, topic.product)
       ]);
@@ -1051,7 +1224,7 @@ async function main() {
 
       imageUrl = await fetchImage(topic.imageQuery);
       [content, meta, uploadedImg] = await Promise.all([
-        generateBuyingGuidePost(topic, imageUrl),
+        generateBuyingGuidePost(topic, imageUrl, trendingCtx),
         Promise.resolve(generateBuyingGuideMeta(topic)),
         uploadImageToWP(auth, imageUrl, `Best ${topic.product}`)
       ]);
@@ -1071,7 +1244,7 @@ async function main() {
 
       imageUrl = await fetchImage(topicA.imageQuery);
       [content, meta, uploadedImg] = await Promise.all([
-        generateComparisonPost(topicA, topicB, imageUrl),
+        generateComparisonPost(topicA, topicB, imageUrl, trendingCtx),
         Promise.resolve(generateComparisonMeta(topicA, topicB)),
         uploadImageToWP(auth, imageUrl, postKey)
       ]);

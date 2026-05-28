@@ -1,0 +1,33 @@
+name: Weekly SEO Report
+
+# Every Sunday at 9:00 AM IST (3:30 AM UTC)
+on:
+  schedule:
+    - cron: '30 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate weekly SEO report
+        env:
+          GEMINI_API_KEY:  ${{ secrets.GEMINI_API_KEY }}
+          WP_APP_PASSWORD: ${{ secrets.WP_PASS }}
+          WP_PASS:         ${{ secrets.WP_PASS }}
+        run: node weekly-report.js
