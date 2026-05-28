@@ -1018,6 +1018,97 @@ Use keyword-rich anchor text — NOT the full post title verbatim. No preamble, 
 }
 
 // ============================================
+// PHASE 4 — QUORA ANSWER GENERATOR
+// Generates 3 copy-paste Quora answers, saves as private WP draft
+// ============================================
+async function generateAndSaveQuoraAnswers(auth, productContext, postType, postUrl, postTitle) {
+  console.log(`\n💬 Generating Quora answers for: ${productContext}…`);
+  try {
+    await new Promise(r => setTimeout(r, GEMINI_CALL_DELAY));
+
+    const typeLabel =
+      postType === "buying_guide" ? `buying guide for ${productContext}` :
+      postType === "comparison"   ? `comparison of ${productContext}`    :
+                                    `review of ${productContext}`;
+
+    const sys = `You are a helpful Indian consumer writing genuine Quora answers about products.
+Write exactly 3 separate Quora answers targeting different question types.
+Each answer:
+- 180–250 words, conversational Indian English, first-person ("I tested/bought/used this")
+- Genuinely helpful — mention real pros, cons, price context in India
+- End with: "I wrote a detailed breakdown here: [REVIEW_LINK]" (use the exact URL provided)
+- NO markdown headers, NO bullet points — flowing paragraphs only
+- Feel like a real person wrote it, not an AI
+
+Separate each answer with: ---ANSWER_BREAK---`;
+
+    const usr = `Product/Topic: ${productContext}
+Post type: ${typeLabel}
+Review URL: ${postUrl}
+Year: ${SEO_YEAR}
+
+Question 1 angle: "Which [product] should I buy under ₹X in India?" (budget/value focus)
+Question 2 angle: "Is [product] worth buying in India ${SEO_YEAR}?" (worth-it verdict focus)
+Question 3 angle: "What are the pros and cons of [product] for Indian users?" (detailed analysis)`;
+
+    const raw = await callGemini(sys, usr, 1200);
+    const answers = raw.split(/---ANSWER_BREAK---/i).map(a => a.trim()).filter(a => a.length > 50);
+
+    if (answers.length === 0) throw new Error("No answers parsed");
+
+    // Build private WP draft HTML
+    const today    = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    const sections = answers.map((ans, i) => {
+      const questionLabels = [
+        `"Which ${productContext} should I buy under ₹X in India?"`,
+        `"Is ${productContext} worth buying in India ${SEO_YEAR}?"`,
+        `"What are the pros and cons of ${productContext} for Indian users?"`
+      ];
+      return `
+<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:20px;margin-bottom:20px;">
+  <p style="margin:0 0 8px;font-size:12px;color:#888;font-weight:600;">ANSWER ${i + 1} — Post under question: ${questionLabels[i] || "related question"}</p>
+  <div style="font-size:15px;line-height:1.7;color:#1a1a1a;">${ans.replace(/\n\n/g, "</p><p>").replace(/\n/g, " ")}</div>
+  <p style="margin:12px 0 0;"><a href="${postUrl}" style="color:#0073aa;">${postUrl}</a></p>
+</div>`;
+    }).join("");
+
+    const draftHtml = `
+<div style="font-family:sans-serif;max-width:800px;">
+  <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:16px;margin-bottom:24px;">
+    <strong>📋 How to use:</strong> Copy each answer below → go to Quora India → search the question → paste answer → add your own photo if possible.
+    <br><strong>Review URL:</strong> <a href="${postUrl}">${postUrl}</a>
+    <br><strong>Generated:</strong> ${today}
+  </div>
+  ${sections}
+</div>`;
+
+    const res = await fetchWithTimeout(
+      `${WORDPRESS_URL}/wp-json/wp/v2/posts`,
+      {
+        method:  "POST",
+        headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          title:   `📋 Quora Answers: ${postTitle}`,
+          content: draftHtml,
+          status:  "private",
+          slug:    `quora-${slugify(productContext)}-${Date.now().toString().slice(-4)}`
+        })
+      },
+      20000
+    );
+
+    if (res.ok) {
+      const draft = await res.json();
+      console.log(`✅ Quora answers saved → WP Admin: ${WORDPRESS_URL}/wp-admin/post.php?post=${draft.id}&action=edit`);
+    } else {
+      console.log(`⚠️  Quora draft save failed: ${res.status}`);
+    }
+  } catch (err) {
+    console.log(`⚠️  Quora generation failed: ${err.message} — continuing`);
+  }
+}
+
+// ============================================
 // PHASE 2 — INDEXNOW PING
 // ============================================
 async function pingIndexNow(url) {
@@ -1269,6 +1360,9 @@ async function main() {
 
     // ── INDEXNOW ─────────────────────────────────────────────────
     await pingIndexNow(postUrl);
+
+    // ── QUORA ANSWERS (private WP draft) ─────────────────────────
+    await generateAndSaveQuoraAnswers(auth, productContext, POST_TYPE, postUrl, meta.title);
 
     // ── MARK DONE ────────────────────────────────────────────────
     markPosted(postKey, POST_TYPE);
