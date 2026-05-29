@@ -39,8 +39,8 @@ jobs:
             TYPE="${{ github.event.inputs.post_type }}"
           else
             HOUR=$(date -u +%H)
-            if   [ "$HOUR" -ge 2 ]  && [ "$HOUR" -lt 6 ];  then TYPE="review"
-            elif [ "$HOUR" -ge 7 ]  && [ "$HOUR" -lt 11 ]; then TYPE="buying_guide"
+            if   [ "$HOUR" -ge 2  ] && [ "$HOUR" -lt 10 ]; then TYPE="review"
+            elif [ "$HOUR" -ge 10 ] && [ "$HOUR" -lt 16 ]; then TYPE="buying_guide"
             else                                                  TYPE="comparison"
             fi
           fi
