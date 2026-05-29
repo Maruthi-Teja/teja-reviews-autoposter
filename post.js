@@ -604,8 +604,116 @@ async function callGemini(systemPrompt, userPrompt, maxTokens = 2500) {
   }
 }
 
+// Post-generation sanitisation — strips Markdown code fences / backticks (Issue 1)
 function cleanGeminiHtml(raw) {
-  return (raw || "").replace(/```html/gi, "").replace(/```/g, "").trim();
+  return (raw || "")
+    .replace(/```html/gi, "")   // remove ```html opening fences
+    .replace(/```/g, "")        // remove any remaining ``` fences
+    .replace(/`/g, "")          // remove stray backticks
+    .trim();
+}
+
+// ============================================
+// CONTENT INTEGRITY RULES (shared system-prompt fragments)
+// Each issue from the site audit maps to one rule below.
+// ============================================
+const RULE_RAW_HTML =
+  `- Output raw HTML only. Do NOT use Markdown, code fences, triple backticks (\`\`\`), or any preamble or sign-off. Begin immediately with the first required HTML tag.`;
+
+// Issue 3 — for single-product posts (review/comparison) where the product IS the input
+const RULE_NO_INVENTED_PRODUCTS =
+  `- Never invent, reference, or name any product, brand, or technology that is not present in the input data provided to you. If you are tempted to mention a complementary product as an example or comparison, omit it entirely. This rule has no exceptions.`;
+
+// Issue 3 — variant for buying guides, which must recommend real products from a category
+const RULE_NO_FICTIONAL_PRODUCTS =
+  `- Only recommend genuine, real products that are actually sold on Amazon India. Never invent, fabricate, or name any fictional product, brand, or model. If you are not certain a product genuinely exists, omit it entirely. This rule has no exceptions.`;
+
+// Issue 4 — affiliate tag must never be visible text
+const RULE_AFFILIATE_TAG =
+  `- Never mention the affiliate tag ${AFFILIATE_TAG} or any tracking parameter as visible text in the post content. It must appear only inside href attributes in hyperlinks.`;
+
+// Issue 6 — no fabricated first-person testing claims
+const RULE_NO_FIRST_PERSON =
+  `- Do not write any first-person experiential claims such as "we tested", "we tried", "we wore", or "in our testing". All performance observations must be attributed to product specifications or customer feedback, phrased as "based on specifications" or "according to customer reviews".`;
+
+// Issue 5 — exact, consistent price range everywhere
+function rulePriceConsistency(price) {
+  return `- Use the exact price range ${price} in every section of the post — introduction, specifications table, pros/cons, FAQ, and final verdict. Do not alter or approximate the price range anywhere.`;
+}
+
+// ============================================
+// FAILURE LOGGING + PRE-PUBLISH VALIDATION
+// ============================================
+const FAILED_LOG = "./failed-posts.log";
+
+// Logs a skipped/failed post with timestamp, topic, failed check and retry count
+function logFailedPost(topicName, failedCheck, retriesAttempted = 0) {
+  const line = `${new Date().toISOString()} | topic="${topicName}" | failed_check="${failedCheck}" | retries_attempted=${retriesAttempted}\n`;
+  try {
+    fs.appendFileSync(FAILED_LOG, line);
+  } catch (e) {
+    console.log(`⚠️  Could not write to ${FAILED_LOG}: ${e.message}`);
+  }
+  console.log(`📛 Logged failed post → ${FAILED_LOG} :: "${topicName}" — ${failedCheck} (retries: ${retriesAttempted})`);
+}
+
+// Issue 7 — decide whether a topic is a specific named product vs a generic category.
+// A topic qualifies as "specific" if it carries an explicit identifier (ASIN, brand,
+// Amazon listing URL) or its name contains a model number / recognised brand.
+const KNOWN_PRODUCT_BRANDS = [
+  "realme", "cmf", "boat", "noise", "redmi", "xiaomi", "ambrane", "fire-boltt",
+  "fire boltt", "fireboltt", "portronics", "zebronics", "ant esports", "syska", "lego"
+];
+
+function resolveProductIdentity(topic) {
+  const asin = topic.asin || topic.ASIN;
+  if (asin && String(asin).trim()) return { specific: true, via: "asin" };
+
+  const url = topic.amazonUrl || topic.amazon_url || topic.url || topic.listingUrl;
+  if (url && /amazon\./i.test(String(url))) return { specific: true, via: "amazon listing url" };
+
+  if (topic.brand && String(topic.brand).trim()) return { specific: true, via: "brand field" };
+
+  const name = ` ${(topic.product || "").toLowerCase()} `;
+  if (/\d/.test(name)) return { specific: true, via: "model number" };
+  if (KNOWN_PRODUCT_BRANDS.some(b => name.includes(` ${b} `))) return { specific: true, via: "brand in name" };
+
+  return { specific: false, via: null };
+}
+
+// Extracts all INR price ranges (e.g. "₹500–₹3,000") normalised to "500-3000"
+function extractPriceRanges(text) {
+  const re = /₹\s*[\d,]+\s*[–—-]\s*₹?\s*[\d,]+/g;
+  return (text.match(re) || []).map(m =>
+    m.replace(/[₹,\s]/g, "").split(/[–—-]/).filter(Boolean).join("-")
+  );
+}
+
+// Pre-publish validation — returns { ok, failedCheck }.
+// Covers Issue 2 (placeholders), Issue 4 (visible affiliate tag) and
+// Issue 5 (internal price-range inconsistency, single-product reviews only).
+function validateGeneratedPost(html, { price = null, postType = "review" } = {}) {
+  // Issue 2 — unfilled square-bracket placeholders like [Brand Name]
+  const placeholder = html.match(/\[[A-Za-z]+(?:\s+[A-Za-z]+)*\]/);
+  if (placeholder) {
+    return { ok: false, failedCheck: `Unfilled placeholder text "${placeholder[0]}"` };
+  }
+
+  // Issue 4 — affiliate tag visible in rendered text (HTML tags/attributes stripped out)
+  const visibleText = html.replace(/<[^>]+>/g, " ");
+  if (visibleText.includes(AFFILIATE_TAG)) {
+    return { ok: false, failedCheck: `Affiliate tag "${AFFILIATE_TAG}" visible in content` };
+  }
+
+  // Issue 5 — a single-product review must state one consistent price range everywhere
+  if (postType === "review") {
+    const distinct = [...new Set(extractPriceRanges(html))];
+    if (distinct.length > 1) {
+      return { ok: false, failedCheck: `Inconsistent price ranges (${distinct.join(" vs ")})` };
+    }
+  }
+
+  return { ok: true, failedCheck: null };
 }
 
 // ============================================
@@ -698,7 +806,13 @@ RULES:
   5. Pros and Cons (two separate <ul> lists)
   6. Who Should Buy? (Perfect For / Skip If)
   7. Final Verdict (mention Amazon India availability)
-- Start directly from <h2>Quick Verdict</h2>. No preamble.${trendingNote}`;
+- Start directly from <h2>Quick Verdict</h2>. No preamble.
+STRICT CONTENT INTEGRITY RULES (no exceptions):
+${RULE_RAW_HTML}
+${RULE_NO_INVENTED_PRODUCTS}
+${RULE_AFFILIATE_TAG}
+${rulePriceConsistency(topic.price)}
+${RULE_NO_FIRST_PERSON}${trendingNote}`;
 
   const usr = `Product: ${topic.product}
 Primary Keyword: ${topic.keywords[0]}
@@ -775,7 +889,13 @@ RULES:
   4. <h2>How to Choose the Right ${topic.product}</h2> — 4–5 key buying factors
   5. <h2>Who Should Buy What?</h2> — 3–4 Indian buyer personas
   6. <h2>Final Verdict</h2> — top pick recommendation with Amazon India link
-- Start from <h2>Why Trust This Guide?</h2>. No preamble.`;
+- Start from <h2>Why Trust This Guide?</h2>. No preamble.
+STRICT CONTENT INTEGRITY RULES (no exceptions):
+${RULE_RAW_HTML}
+${RULE_NO_FICTIONAL_PRODUCTS}
+${RULE_AFFILIATE_TAG}
+- Keep all INR prices within the overall range ${topic.price}; do not invent prices outside it or contradict it.
+${RULE_NO_FIRST_PERSON}`;
 
   const usr = `Product Category: ${topic.product}
 Price Range: ${topic.price}
@@ -840,7 +960,13 @@ RULES:
   6. <h2>Who Should Choose ${topicA.product}?</h2> — 3 bullet points
   7. <h2>Who Should Choose ${topicB.product}?</h2> — 3 bullet points
   8. <h2>Final Verdict</h2> — clear recommendation; Amazon India links for both (tag: ${AFFILIATE_TAG})
-- Start from <h2>Quick Verdict</h2>. No preamble.`;
+- Start from <h2>Quick Verdict</h2>. No preamble.
+STRICT CONTENT INTEGRITY RULES (no exceptions):
+${RULE_RAW_HTML}
+${RULE_NO_INVENTED_PRODUCTS}
+${RULE_AFFILIATE_TAG}
+- Use the exact price range ${topicA.price} for ${topicA.product} and ${topicB.price} for ${topicB.product} in every section. Do not alter or approximate either price range anywhere.
+${RULE_NO_FIRST_PERSON}`;
 
   const usr = `Product A: ${topicA.product} (${topicA.price})
 Product B: ${topicB.product} (${topicB.price})
@@ -919,7 +1045,7 @@ function generateComparisonMeta(topicA, topicB) {
 // ============================================
 // PHASE 2 — FAQ BLOCK (separate Gemini call)
 // ============================================
-async function generateFAQBlock(productContext, postType) {
+async function generateFAQBlock(productContext, postType, priceRange = "") {
   console.log(`\n❓ Generating FAQ block: ${productContext}…`);
   try {
     await new Promise(r => setTimeout(r, GEMINI_CALL_DELAY));
@@ -929,6 +1055,10 @@ async function generateFAQBlock(productContext, postType) {
       postType === "comparison"   ? `comparison of ${productContext}`    :
                                     `review of ${productContext}`;
 
+    const priceNote = priceRange
+      ? `\n${rulePriceConsistency(priceRange)}`
+      : "";
+
     const sys = `You are an SEO expert writing FAQ sections for an Indian affiliate review blog.
 Generate exactly 5 FAQ questions and answers for a ${context}.
 RULES:
@@ -936,7 +1066,12 @@ RULES:
 - Answers: 2–3 sentences, helpful, factual, India-relevant.
 - Output ONLY a single <div class="faq-block"> containing exactly 5 <div class="faq-item"> elements.
 - Each faq-item: <h3 class="faq-question">QUESTION</h3><p class="faq-answer">ANSWER</p>
-- No markdown, no code fences, no preamble, no text outside the wrapper div.`;
+- No markdown, no code fences, no preamble, no text outside the wrapper div.
+STRICT CONTENT INTEGRITY RULES (no exceptions):
+${RULE_RAW_HTML}
+${RULE_NO_INVENTED_PRODUCTS}
+${RULE_AFFILIATE_TAG}
+${RULE_NO_FIRST_PERSON}${priceNote}`;
 
     const usr = `Topic: ${productContext} (India, ${SEO_YEAR})`;
 
@@ -1288,6 +1423,12 @@ async function main() {
     // ── PHASE 4C: fetch trending context once for all generators ──
     const trendingCtx = await getTrendingContext();
 
+    // Per-type setup populates these; generateBody() produces the HTML body.
+    let generateBody;            // () => Promise<string>
+    let imgUploadPromise;        // Promise<uploadedImg> (runs concurrently with generation)
+    let reviewPrice    = null;   // price range for Issue 5 identity check (reviews only)
+    let faqPrice       = "";     // price range passed into the FAQ generator (Issue 5)
+
     // ── REVIEW ──────────────────────────────────────────────────
     if (POST_TYPE === "review") {
       const topic = getTodaysTopic();
@@ -1300,12 +1441,21 @@ async function main() {
         return;
       }
 
-      imageUrl = await fetchImage(topic.imageQuery);
-      [content, meta, uploadedImg] = await Promise.all([
-        generateReviewPost(topic, imageUrl, trendingCtx),
-        Promise.resolve(generateReviewMeta(topic)),
-        uploadImageToWP(auth, imageUrl, topic.product)
-      ]);
+      // ── ISSUE 7: a review requires a specific named product, not a generic category ──
+      const identity = resolveProductIdentity(topic);
+      if (!identity.specific) {
+        console.log(`⚠️  "${postKey}" is a generic category — no specific product to review. Skipping.`);
+        logFailedPost(postKey, "No specific product provided", 0);
+        return;
+      }
+      console.log(`✅ Specific product confirmed (via ${identity.via})`);
+
+      imageUrl         = await fetchImage(topic.imageQuery);
+      imgUploadPromise = uploadImageToWP(auth, imageUrl, topic.product);
+      meta             = generateReviewMeta(topic);
+      reviewPrice      = topic.price;
+      faqPrice         = topic.price;
+      generateBody     = () => generateReviewPost(topic, imageUrl, trendingCtx);
 
     // ── BUYING GUIDE ─────────────────────────────────────────────
     } else if (POST_TYPE === "buying_guide") {
@@ -1319,12 +1469,11 @@ async function main() {
         return;
       }
 
-      imageUrl = await fetchImage(topic.imageQuery);
-      [content, meta, uploadedImg] = await Promise.all([
-        generateBuyingGuidePost(topic, imageUrl, trendingCtx),
-        Promise.resolve(generateBuyingGuideMeta(topic)),
-        uploadImageToWP(auth, imageUrl, `Best ${topic.product}`)
-      ]);
+      imageUrl         = await fetchImage(topic.imageQuery);
+      imgUploadPromise = uploadImageToWP(auth, imageUrl, `Best ${topic.product}`);
+      meta             = generateBuyingGuideMeta(topic);
+      faqPrice         = topic.price;
+      generateBody     = () => generateBuyingGuidePost(topic, imageUrl, trendingCtx);
 
     // ── COMPARISON ───────────────────────────────────────────────
     } else if (POST_TYPE === "comparison") {
@@ -1339,20 +1488,46 @@ async function main() {
         return;
       }
 
-      imageUrl = await fetchImage(topicA.imageQuery);
-      [content, meta, uploadedImg] = await Promise.all([
-        generateComparisonPost(topicA, topicB, imageUrl, trendingCtx),
-        Promise.resolve(generateComparisonMeta(topicA, topicB)),
-        uploadImageToWP(auth, imageUrl, postKey)
-      ]);
+      imageUrl         = await fetchImage(topicA.imageQuery);
+      imgUploadPromise = uploadImageToWP(auth, imageUrl, postKey);
+      meta             = generateComparisonMeta(topicA, topicB);
+      generateBody     = () => generateComparisonPost(topicA, topicB, imageUrl, trendingCtx);
 
     } else {
       throw new Error(`Unknown POST_TYPE: "${POST_TYPE}". Use: review | buying_guide | comparison`);
     }
 
-    // ── FAQ BLOCK (sequential, 4s delay built-in) ────────────────
-    const faqBlock = await generateFAQBlock(productContext, POST_TYPE);
-    content = content + faqBlock;
+    // ── GENERATE + PRE-PUBLISH VALIDATION (retry up to 2 times) ──
+    // Body + FAQ are regenerated together so the price-consistency check (Issue 5)
+    // covers the FAQ as well. On repeated failure the post is logged and skipped.
+    const MAX_GEN_ATTEMPTS = 3; // 1 initial attempt + up to 2 retries
+    let attemptsRun     = 0;
+    let lastFailedCheck = null;
+
+    for (let attempt = 1; attempt <= MAX_GEN_ATTEMPTS; attempt++) {
+      attemptsRun = attempt;
+      const body     = await generateBody();
+      const faqBlock = await generateFAQBlock(productContext, POST_TYPE, faqPrice);
+      const candidate = body + faqBlock;
+
+      const check = validateGeneratedPost(candidate, { price: reviewPrice, postType: POST_TYPE });
+      if (check.ok) {
+        content = candidate;
+        break;
+      }
+
+      lastFailedCheck = check.failedCheck;
+      console.log(`⚠️  Pre-publish validation failed (${check.failedCheck}) — attempt ${attempt}/${MAX_GEN_ATTEMPTS}`);
+      if (attempt < MAX_GEN_ATTEMPTS) await new Promise(r => setTimeout(r, GEMINI_CALL_DELAY));
+    }
+
+    if (!content) {
+      logFailedPost(postKey, lastFailedCheck || "Validation failed", attemptsRun - 1);
+      console.log(`⛔ Skipping "${postKey}" after ${attemptsRun - 1} retr${attemptsRun - 1 === 1 ? "y" : "ies"} — failed check: ${lastFailedCheck}`);
+      return;
+    }
+
+    uploadedImg = await imgUploadPromise;
 
     // ── READING TIME BADGE ───────────────────────────────────────
     content = readingTimeBadge(content) + content;
