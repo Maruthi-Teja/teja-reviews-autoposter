@@ -461,6 +461,12 @@ function ensureTitleHasYear(title) {
   return t && !t.includes(String(SEO_YEAR)) ? `${t} (${SEO_YEAR})` : t;
 }
 
+function readingTimeBadge(html) {
+  const words   = html.replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length;
+  const minutes = Math.max(1, Math.ceil(words / 238));
+  return `<p style="color:#888;font-size:0.9em;margin-bottom:1.2em;">⏱️ ${minutes} min read</p>\n`;
+}
+
 // ============================================
 // HISTORY — per-type duplicate prevention
 // Structure: { reviews: [], buying_guides: [], comparisons: [] }
@@ -1347,6 +1353,9 @@ async function main() {
     // ── FAQ BLOCK (sequential, 4s delay built-in) ────────────────
     const faqBlock = await generateFAQBlock(productContext, POST_TYPE);
     content = content + faqBlock;
+
+    // ── READING TIME BADGE ───────────────────────────────────────
+    content = readingTimeBadge(content) + content;
 
     // ── PUBLISH ──────────────────────────────────────────────────
     const result  = await publishToWordPress(content, meta, uploadedImg?.id, auth);
