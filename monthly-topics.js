@@ -83,6 +83,26 @@ function getUpcomingFestivals(month) {
   return festivals[month] || "General shopping season";
 }
 
+// ============================================
+// SPECIFIC-PRODUCT GATE
+// Mirrors resolveProductIdentity() in post.js so the generated calendar only
+// contains specific named products (brand + model), never generic categories.
+// A topic qualifies if it has a brand field, or a model number / known brand in
+// the name. (No ASIN is requested — asking Gemini for ASINs invites fabrication.)
+// ============================================
+const KNOWN_PRODUCT_BRANDS = [
+  "realme", "cmf", "boat", "noise", "redmi", "xiaomi", "ambrane", "fire-boltt",
+  "fire boltt", "fireboltt", "portronics", "zebronics", "ant esports", "syska", "lego"
+];
+
+function isSpecificProduct(t) {
+  if (t.brand && String(t.brand).trim()) return true;
+  const name = ` ${(t.product || "").toLowerCase()} `;
+  if (/\d/.test(name)) return true;
+  if (KNOWN_PRODUCT_BRANDS.some(b => name.includes(` ${b} `))) return true;
+  return false;
+}
+
 async function main() {
   console.log("📅 Teja Reviews — Monthly Content Calendar Generator");
   console.log("======================================================");
@@ -106,16 +126,25 @@ CONTEXT:
 - Avoid: smartphones and laptops (low Amazon commission 0.5%)
 - Focus on: ₹500–₹15,000 price range products with high search volume
 
+CRITICAL — SPECIFIC PRODUCTS ONLY (no exceptions):
+- Every entry MUST be a specific, real, currently-sold product with a brand AND a model name/number — NOT a generic category.
+  ✅ GOOD: "boAt Airdopes 311 Pro", "Noise ColorFit Pro 5", "Ambrane 20000mAh Power Bank", "Lifelong LLM809 Yoga Mat"
+  ❌ BAD (generic category): "Wireless Earbuds", "Smartwatch", "Yoga Mat", "Blush Makeup", "Power Bank"
+- Only include products you are confident genuinely exist and are sold on Amazon India today.
+  NEVER invent or fabricate a fictional product, brand, model number, or any identifier. If unsure a product is real, leave it out. This rule has no exceptions.
+- The "brand" field must be the real manufacturer brand only (e.g. "boAt", "Noise", "Realme").
+
 Return ONLY a valid JSON array of 90 objects. No preamble, no explanation, no code fences. Each object:
 {
-  "product": "Product Name",
+  "product": "Exact product name including brand and model (e.g. \"boAt Airdopes 311 Pro\")",
+  "brand": "Manufacturer brand only (e.g. \"boAt\")",
   "price": "₹XXX–₹X,XXX",
   "category": "Category Name",
   "imageQuery": "3-4 word pexels search term",
   "keywords": ["primary keyword india", "secondary keyword 2026", "tertiary keyword"]
 }
 
-Mix these categories across the 90 topics:
+Draw specific named products from these categories:
 - Tech & Audio (earbuds, speakers, headphones)
 - Wearable Tech (smartwatches, fitness bands)
 - Mobile Accessories (power banks, chargers, cases)
@@ -147,13 +176,25 @@ Mix these categories across the 90 topics:
   }
 
   // Validate and clean each topic
-  const cleaned = topics.map(t => ({
+  const cleanedAll = topics.map(t => ({
     product:    (t.product    || "").trim(),
+    brand:      (t.brand      || "").trim(),
     price:      (t.price      || "₹500–₹5,000").trim(),
     category:   (t.category   || "Tech & Electronics").trim(),
     imageQuery: (t.imageQuery || "product review india").trim(),
     keywords:   Array.isArray(t.keywords) ? t.keywords.slice(0, 3).map(k => (k || "").trim()) : []
   })).filter(t => t.product.length > 0);
+
+  // Drop any generic-category entries that slipped through, so post.js never
+  // has to skip a review for "No specific product provided" (Issue 7).
+  const cleaned = cleanedAll.filter(isSpecificProduct);
+  const dropped = cleanedAll.length - cleaned.length;
+  if (dropped > 0) {
+    console.log(`🧹 Dropped ${dropped} generic-category topic(s); ${cleaned.length} specific products kept`);
+  }
+  if (cleaned.length < 10) {
+    throw new Error(`Too few specific products after filtering (${cleaned.length}). Aborting to avoid overwriting topics.json with a thin list.`);
+  }
 
   const output = {
     generatedFor: `${nextMonth.name} ${nextMonth.year}`,
@@ -169,7 +210,7 @@ Mix these categories across the 90 topics:
   console.log(`\n✅ Generated ${cleaned.length} topics for ${nextMonth.name} ${nextMonth.year}`);
   console.log(`💾 Saved to ${TOPICS_FILE}`);
   console.log(`\nSample topics:`);
-  cleaned.slice(0, 5).forEach((t, i) => console.log(`  ${i+1}. ${t.product} (${t.price}) — ${t.category}`));
+  cleaned.slice(0, 5).forEach((t, i) => console.log(`  ${i+1}. ${t.product} [${t.brand || "—"}] (${t.price}) — ${t.category}`));
 }
 
 main().catch(err => {

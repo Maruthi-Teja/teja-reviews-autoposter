@@ -432,6 +432,23 @@ function getTomorrowsTopic() {
   return pool[(Math.floor(Date.now() / 86400000) + 1) % pool.length];
 }
 
+// Pick the review topic for today. A genuine product review needs a specific
+// named product (Issue 7), so if today's rotation lands on a generic category
+// (or a product already reviewed), advance to the next specific, not-yet-posted
+// product in the pool. Uses only real products already present — never fabricates.
+// Returns { topic, advanced }; topic is null when no eligible product remains.
+function getTodaysReviewTopic() {
+  const pool  = getActiveTopics();
+  const start = Math.floor(Date.now() / 86400000) % pool.length;
+  for (let i = 0; i < pool.length; i++) {
+    const t = pool[(start + i) % pool.length];
+    if (resolveProductIdentity(t).specific && !isAlreadyPosted(t.product, "review")) {
+      return { topic: t, advanced: i > 0 };
+    }
+  }
+  return { topic: null, advanced: false };
+}
+
 // ============================================
 // SLUG BUILDERS
 // ============================================
@@ -1431,24 +1448,17 @@ async function main() {
 
     // ── REVIEW ──────────────────────────────────────────────────
     if (POST_TYPE === "review") {
-      const topic = getTodaysTopic();
-      console.log(`📦 Topic: ${topic.product}`);
+      // ── ISSUE 7: a review needs a specific named product, not a generic category ──
+      const { topic, advanced } = getTodaysReviewTopic();
+      if (!topic) {
+        const attempted = getTodaysTopic().product;
+        console.log(`⚠️  No specific, unposted product available for review. Skipping.`);
+        logFailedPost(attempted, "No specific product provided", 0);
+        return;
+      }
+      console.log(`📦 Topic: ${topic.product}${advanced ? " (advanced past generic/already-posted topics)" : ""}`);
       postKey        = topic.product;
       productContext = topic.product;
-
-      if (isAlreadyPosted(postKey, "review")) {
-        console.log("⚠️  Review already posted today. Skipping.");
-        return;
-      }
-
-      // ── ISSUE 7: a review requires a specific named product, not a generic category ──
-      const identity = resolveProductIdentity(topic);
-      if (!identity.specific) {
-        console.log(`⚠️  "${postKey}" is a generic category — no specific product to review. Skipping.`);
-        logFailedPost(postKey, "No specific product provided", 0);
-        return;
-      }
-      console.log(`✅ Specific product confirmed (via ${identity.via})`);
 
       imageUrl         = await fetchImage(topic.imageQuery);
       imgUploadPromise = uploadImageToWP(auth, imageUrl, topic.product);
