@@ -904,7 +904,11 @@ Amazon Affiliate Tag: ${AFFILIATE_TAG}`;
 
 // ── 2. Buying Guide Post ──────────────────
 async function generateBuyingGuidePost(topic, imageUrl, trendingContext = "") {
-  console.log(`\n📝 Generating Buying Guide: Best ${topic.product}…`);
+  // Buying guides are category-level. Use productType (e.g. "Security Cameras")
+  // when available so a specific-product topic still yields "Best Security Cameras",
+  // not "Best <one exact model>". Falls back to product for legacy/hardcoded topics.
+  const subject = topic.productType || topic.product;
+  console.log(`\n📝 Generating Buying Guide: Best ${subject}…`);
 
   const trendingNote = trendingContext
     ? `\nTRENDING CONTEXT (use to recommend currently popular picks):\n${trendingContext}\n`
@@ -919,13 +923,13 @@ RULES:
 - Length: 1100–1400 words.${trendingNote}
 - Structure:
   1. <h2>Why Trust This Guide?</h2> — brief intro on how picks were selected
-  2. <h2>Top 5 Best ${topic.product} in India ${SEO_YEAR}</h2> — each pick as <h3> with:
+  2. <h2>Top 5 Best ${subject} in India ${SEO_YEAR}</h2> — each pick as <h3> with:
        · 2–3 sentence description
        · Key specs as <ul>
        · "Best for:" one-liner
        · Amazon India CTA button using affiliate tag ${AFFILIATE_TAG}
   3. <h2>Comparison Table</h2> — HTML <table>: Name | Price (INR) | Key Feature | Best For | Rating
-  4. <h2>How to Choose the Right ${topic.product}</h2> — 4–5 key buying factors
+  4. <h2>How to Choose the Right ${subject}</h2> — 4–5 key buying factors
   5. <h2>Who Should Buy What?</h2> — 3–4 Indian buyer personas
   6. <h2>Final Verdict</h2> — top pick recommendation with Amazon India link
 - Start from <h2>Why Trust This Guide?</h2>. No preamble.
@@ -936,9 +940,9 @@ ${RULE_AFFILIATE_TAG}
 - Keep all INR prices within the overall range ${topic.price}; do not invent prices outside it or contradict it.
 ${RULE_NO_FIRST_PERSON}`;
 
-  const usr = `Product Category: ${topic.product}
+  const usr = `Product Category: ${subject}
 Price Range: ${topic.price}
-Focus Keyword: best ${topic.product.toLowerCase()} India
+Focus Keyword: best ${subject.toLowerCase()} India
 Year: ${SEO_YEAR}
 Amazon Affiliate Tag: ${AFFILIATE_TAG}`;
 
@@ -946,13 +950,13 @@ Amazon Affiliate Tag: ${AFFILIATE_TAG}`;
 
   const imageBlock = imageUrl ? `
 <figure style="margin:2rem 0;text-align:center;">
-  <img src="${imageUrl}" alt="Best ${topic.product} India ${SEO_YEAR}" style="width:100%;max-width:800px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,.1);" loading="lazy"/>
-  <figcaption style="font-size:13px;color:#666;margin-top:8px;">Best ${topic.product} in India — Price Range: ${topic.price}</figcaption>
+  <img src="${imageUrl}" alt="Best ${subject} India ${SEO_YEAR}" style="width:100%;max-width:800px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,.1);" loading="lazy"/>
+  <figcaption style="font-size:13px;color:#666;margin-top:8px;">Best ${subject} in India — Price Range: ${topic.price}</figcaption>
 </figure>` : "";
 
   const shopButton = `
 <div style="text-align:center;margin:2rem 0;">
-  <a href="https://www.amazon.in/s?k=${encodeURIComponent("best " + topic.product)}&tag=${AFFILIATE_TAG}" target="_blank" rel="noopener noreferrer" style="background:#FF9900;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;">🛒 Shop All Picks on Amazon India</a>
+  <a href="https://www.amazon.in/s?k=${encodeURIComponent("best " + subject)}&tag=${AFFILIATE_TAG}" target="_blank" rel="noopener noreferrer" style="background:#FF9900;color:#000;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;">🛒 Shop All Picks on Amazon India</a>
 </div>`;
 
   let body = html
@@ -1060,12 +1064,13 @@ function generateReviewMeta(topic) {
 }
 
 function generateBuyingGuideMeta(topic) {
+  const subject = topic.productType || topic.product;
   return {
-    title:           `Best ${topic.product} in India ${SEO_YEAR}: Top 5 Picks & Buying Guide`,
-    slug:            buildBuyingGuideSlug(topic.product),
-    metaDescription: `Best ${topic.product.toLowerCase()} in India ${SEO_YEAR}? Our expert guide covers top 5 picks, INR prices, pros & cons to help you choose right.`,
-    focusKeyword:    `best ${topic.product.toLowerCase()} India`,
-    tags:            [`best ${topic.product.toLowerCase()} India`, topic.keywords[0], topic.category.toLowerCase()],
+    title:           `Best ${subject} in India ${SEO_YEAR}: Top 5 Picks & Buying Guide`,
+    slug:            buildBuyingGuideSlug(subject),
+    metaDescription: `Best ${subject.toLowerCase()} in India ${SEO_YEAR}? Our expert guide covers top 5 picks, INR prices, pros & cons to help you choose right.`,
+    focusKeyword:    `best ${subject.toLowerCase()} India`,
+    tags:            [`best ${subject.toLowerCase()} India`, topic.keywords[0], topic.category.toLowerCase()],
     category:        topic.category
   };
 }
@@ -1492,9 +1497,12 @@ async function main() {
     // ── BUYING GUIDE ─────────────────────────────────────────────
     } else if (POST_TYPE === "buying_guide") {
       const topic = getTodaysTopic();
-      console.log(`📦 Topic: Best ${topic.product}`);
-      postKey        = topic.product;
-      productContext = `best ${topic.product}`;
+      // Category-level guide: prefer productType ("Security Cameras") over the exact
+      // model, so dedup and titles are per-category, not per-product.
+      const guideSubject = topic.productType || topic.product;
+      console.log(`📦 Topic: Best ${guideSubject}`);
+      postKey        = guideSubject;
+      productContext = `best ${guideSubject}`;
 
       if (isAlreadyPosted(postKey, "buying_guide")) {
         console.log("⚠️  Buying guide already posted today. Skipping.");
@@ -1502,7 +1510,7 @@ async function main() {
       }
 
       imageUrl         = await fetchImage(topic.imageQuery);
-      imgUploadPromise = uploadImageToWP(auth, imageUrl, `Best ${topic.product}`);
+      imgUploadPromise = uploadImageToWP(auth, imageUrl, `Best ${guideSubject}`);
       meta             = generateBuyingGuideMeta(topic);
       faqPrice         = topic.price;
       generateBody     = () => generateBuyingGuidePost(topic, imageUrl, trendingCtx);
