@@ -146,8 +146,8 @@ CONTEXT:
 - Season: ${nextMonth.season}
 - Upcoming events: ${getUpcomingFestivals(nextMonth.month)}
 - Target: Indian buyers, Amazon India affiliate links
-- Mix: 50% electronics/tech, 30% health/wellness/beauty, 20% home/lifestyle
-- Avoid: smartphones and laptops (low Amazon commission 0.5%)
+- Mix (IMPORTANT): exactly 50% Electronics and 50% Beauty & Personal Care
+- Avoid entirely: mobiles/smartphones, laptops, tablets, TVs (very low ~0.5% Amazon commission and unwinnable competition)
 - Focus on: ₹500–₹15,000 price range products with high search volume
 
 CRITICAL — SPECIFIC PRODUCTS ONLY (no exceptions):
@@ -168,17 +168,22 @@ Return ONLY a valid JSON array of 90 objects. No preamble, no explanation, no co
   "keywords": ["primary keyword india", "secondary keyword 2026", "tertiary keyword"]
 }
 
-Draw specific named products from these categories:
-- Tech & Audio (earbuds, speakers, headphones)
+Draw specific named products ONLY from these two halves (≈45 each):
+
+ELECTRONICS (50%) — audio, wearables, accessories, smart home, gaming. NO mobiles/laptops/tablets/TVs:
+- Tech & Audio (earbuds, headphones, Bluetooth speakers)
 - Wearable Tech (smartwatches, fitness bands)
-- Mobile Accessories (power banks, chargers, cases)
-- Smart Home Tech (smart bulbs, plugs, security)
-- Tech & Gaming (headsets, keyboards, controllers)
-- Fitness & Wellness (yoga, protein, supplements)
-- Beauty & Skincare (serums, masks, tools)
-- Home & Kitchen (appliances, cookware, storage)
-- Personal Care (grooming, dental, hair care)
-- Lifestyle (bottles, bags, stationery)`;
+- Mobile Accessories (power banks, chargers, cables)
+- Smart Home Tech (smart bulbs, plugs, security cams)
+- Tech & Gaming (headsets, keyboards, controllers, mice)
+
+BEAUTY & PERSONAL CARE (50%) — prefer ingredient-led skincare and spec-able grooming tools; use real Indian brands (Minimalist, Mamaearth, The Derma Co, Plum, Dot & Key, mCaffeine, Pilgrim, WOW, Cetaphil, etc.):
+- Beauty & Skincare (serums, moisturisers, sunscreens, masks — name the active, e.g. "Minimalist Niacinamide 10%")
+- Personal Care / Grooming Tools (hair dryers, straighteners, trimmers, electric toothbrushes)
+- Hair Care (shampoos, hair oils, serums)
+- Bath & Body (body lotions, washes, scrubs)
+
+Keep categories ("category" field) accurate so same-category comparisons are possible.`;
 
   console.log("\n📡 Calling Gemini to generate 90 topics…");
   const raw = await callGemini(prompt, 8192);
