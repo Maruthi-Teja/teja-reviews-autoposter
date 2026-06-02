@@ -55,8 +55,7 @@ async function getRecentPosts(auth) {
 
   const res = await fetchWithTimeout(
     `${WORDPRESS_URL}/wp-json/wp/v2/posts?per_page=30&after=${since}&status=publish&_fields=id,title,slug,link,categories,date`,
-    { headers: { Authorization: `Basic ${auth}` } },
-    15000
+    { headers: { Authorization: `Basic ${auth}` } }
   );
   if (!res.ok) throw new Error(`WP posts fetch failed: ${res.status}`);
   return res.json();
@@ -65,8 +64,7 @@ async function getRecentPosts(auth) {
 async function getAllPublishedPosts(auth) {
   const res = await fetchWithTimeout(
     `${WORDPRESS_URL}/wp-json/wp/v2/posts?per_page=50&status=publish&orderby=date&order=desc&_fields=id,title,slug,link,date`,
-    { headers: { Authorization: `Basic ${auth}` } },
-    15000
+    { headers: { Authorization: `Basic ${auth}` } }
   );
   if (!res.ok) return [];
   return res.json();
