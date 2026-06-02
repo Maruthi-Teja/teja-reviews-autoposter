@@ -449,6 +449,28 @@ function getTodaysReviewTopic() {
   return { topic: null, advanced: false };
 }
 
+// Pick two SAME-CATEGORY specific products to compare, so we never pair unrelated
+// items (e.g. a serum vs a power bank). Starting from today's rotation, find the
+// first specific product that has a same-category, specific, not-yet-compared
+// sibling. Returns { a, b }, or null when no sensible pair exists (→ skip + log).
+function getComparisonPair() {
+  const pool  = getActiveTopics();
+  const start = Math.floor(Date.now() / 86400000) % pool.length;
+  for (let i = 0; i < pool.length; i++) {
+    const a = pool[(start + i) % pool.length];
+    if (!resolveProductIdentity(a).specific) continue;
+    for (let j = 1; j < pool.length; j++) {
+      const b = pool[(start + i + j) % pool.length];
+      if (b.product === a.product)             continue;
+      if (b.category !== a.category)           continue;
+      if (!resolveProductIdentity(b).specific) continue;
+      if (isAlreadyPosted(`${a.product} vs ${b.product}`, "comparison")) continue;
+      return { a, b };
+    }
+  }
+  return null;
+}
+
 // ============================================
 // SLUG BUILDERS
 // ============================================
@@ -1487,16 +1509,20 @@ async function main() {
 
     // ── COMPARISON ───────────────────────────────────────────────
     } else if (POST_TYPE === "comparison") {
-      const topicA = getTodaysTopic();
-      const topicB = getTomorrowsTopic();
-      console.log(`📦 Comparing: ${topicA.product} vs ${topicB.product}`);
-      postKey        = `${topicA.product} vs ${topicB.product}`;
-      productContext = postKey;
-
-      if (isAlreadyPosted(postKey, "comparison")) {
-        console.log("⚠️  Comparison already posted today. Skipping.");
+      // Compare two SAME-CATEGORY specific products (never serum vs power bank).
+      const pair = getComparisonPair();
+      if (!pair) {
+        const attempted = getTodaysTopic().product;
+        console.log("⚠️  No same-category product pair available to compare. Skipping.");
+        logFailedPost(attempted, "No same-category product to compare", 0);
         return;
       }
+      const topicA = pair.a;
+      const topicB = pair.b;
+      console.log(`📦 Comparing: ${topicA.product} vs ${topicB.product} [${topicA.category}]`);
+      postKey        = `${topicA.product} vs ${topicB.product}`;
+      productContext = postKey;
+      // getComparisonPair() already excludes already-posted combinations.
 
       imageUrl         = await fetchImage(topicA.imageQuery);
       imgUploadPromise = uploadImageToWP(auth, imageUrl, postKey);

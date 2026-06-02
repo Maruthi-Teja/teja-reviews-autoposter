@@ -103,6 +103,30 @@ function isSpecificProduct(t) {
   return false;
 }
 
+// Parse the JSON array of topics from the model output. If the response was
+// truncated mid-array (e.g. it hit the output-token cap), salvage it by keeping
+// only the complete objects: trim to the last "}", drop a trailing comma, and
+// close the array. This turns a hard crash into a usable (slightly shorter) list.
+function parseTopicsArray(raw) {
+  const start = raw.indexOf("[");
+  if (start === -1) throw new Error("No JSON array found in response");
+  const body = raw.slice(start);
+
+  // 1) Happy path: a well-formed array from the first "[" to the last "]".
+  const full = body.match(/\[[\s\S]*\]/);
+  if (full) {
+    try { return JSON.parse(full[0]); } catch { /* truncated/invalid → salvage below */ }
+  }
+
+  // 2) Salvage path: keep everything up to the last complete object.
+  const lastObjEnd = body.lastIndexOf("}");
+  if (lastObjEnd === -1) throw new Error("No complete objects to salvage from response");
+  const salvaged = body.slice(0, lastObjEnd + 1).replace(/,\s*$/, "") + "\n]";
+  const parsed = JSON.parse(salvaged);
+  console.log(`⚠️  Model output was truncated — salvaged ${parsed.length} complete topic(s).`);
+  return parsed;
+}
+
 async function main() {
   console.log("📅 Teja Reviews — Monthly Content Calendar Generator");
   console.log("======================================================");
@@ -122,8 +146,8 @@ CONTEXT:
 - Season: ${nextMonth.season}
 - Upcoming events: ${getUpcomingFestivals(nextMonth.month)}
 - Target: Indian buyers, Amazon India affiliate links
-- Mix: 50% electronics/tech, 30% health/wellness/beauty, 20% home/lifestyle
-- Avoid: smartphones and laptops (low Amazon commission 0.5%)
+- Mix (IMPORTANT): exactly 50% Electronics and 50% Beauty & Personal Care
+- Avoid entirely: mobiles/smartphones, laptops, tablets, TVs (very low ~0.5% Amazon commission and unwinnable competition)
 - Focus on: ₹500–₹15,000 price range products with high search volume
 
 CRITICAL — SPECIFIC PRODUCTS ONLY (no exceptions):
@@ -144,27 +168,30 @@ Return ONLY a valid JSON array of 90 objects. No preamble, no explanation, no co
   "keywords": ["primary keyword india", "secondary keyword 2026", "tertiary keyword"]
 }
 
-Draw specific named products from these categories:
-- Tech & Audio (earbuds, speakers, headphones)
+Draw specific named products ONLY from these two halves (≈45 each):
+
+ELECTRONICS (50%) — audio, wearables, accessories, smart home, gaming. NO mobiles/laptops/tablets/TVs:
+- Tech & Audio (earbuds, headphones, Bluetooth speakers)
 - Wearable Tech (smartwatches, fitness bands)
-- Mobile Accessories (power banks, chargers, cases)
-- Smart Home Tech (smart bulbs, plugs, security)
-- Tech & Gaming (headsets, keyboards, controllers)
-- Fitness & Wellness (yoga, protein, supplements)
-- Beauty & Skincare (serums, masks, tools)
-- Home & Kitchen (appliances, cookware, storage)
-- Personal Care (grooming, dental, hair care)
-- Lifestyle (bottles, bags, stationery)`;
+- Mobile Accessories (power banks, chargers, cables)
+- Smart Home Tech (smart bulbs, plugs, security cams)
+- Tech & Gaming (headsets, keyboards, controllers, mice)
+
+BEAUTY & PERSONAL CARE (50%) — prefer ingredient-led skincare and spec-able grooming tools; use real Indian brands (Minimalist, Mamaearth, The Derma Co, Plum, Dot & Key, mCaffeine, Pilgrim, WOW, Cetaphil, etc.):
+- Beauty & Skincare (serums, moisturisers, sunscreens, masks — name the active, e.g. "Minimalist Niacinamide 10%")
+- Personal Care / Grooming Tools (hair dryers, straighteners, trimmers, electric toothbrushes)
+- Hair Care (shampoos, hair oils, serums)
+- Bath & Body (body lotions, washes, scrubs)
+
+Keep categories ("category" field) accurate so same-category comparisons are possible.`;
 
   console.log("\n📡 Calling Gemini to generate 90 topics…");
-  const raw = await callGemini(prompt, 4000);
+  const raw = await callGemini(prompt, 8192);
 
-  // Extract JSON from response
+  // Extract JSON from response — tolerant of truncated output (see parseTopicsArray)
   let topics;
   try {
-    const jsonMatch = raw.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error("No JSON array found in response");
-    topics = JSON.parse(jsonMatch[0]);
+    topics = parseTopicsArray(raw);
   } catch (err) {
     console.error("❌ Failed to parse Gemini JSON:", err.message);
     console.error("Raw response (first 500 chars):", raw.slice(0, 500));
