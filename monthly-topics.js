@@ -103,6 +103,30 @@ function isSpecificProduct(t) {
   return false;
 }
 
+// Parse the JSON array of topics from the model output. If the response was
+// truncated mid-array (e.g. it hit the output-token cap), salvage it by keeping
+// only the complete objects: trim to the last "}", drop a trailing comma, and
+// close the array. This turns a hard crash into a usable (slightly shorter) list.
+function parseTopicsArray(raw) {
+  const start = raw.indexOf("[");
+  if (start === -1) throw new Error("No JSON array found in response");
+  const body = raw.slice(start);
+
+  // 1) Happy path: a well-formed array from the first "[" to the last "]".
+  const full = body.match(/\[[\s\S]*\]/);
+  if (full) {
+    try { return JSON.parse(full[0]); } catch { /* truncated/invalid → salvage below */ }
+  }
+
+  // 2) Salvage path: keep everything up to the last complete object.
+  const lastObjEnd = body.lastIndexOf("}");
+  if (lastObjEnd === -1) throw new Error("No complete objects to salvage from response");
+  const salvaged = body.slice(0, lastObjEnd + 1).replace(/,\s*$/, "") + "\n]";
+  const parsed = JSON.parse(salvaged);
+  console.log(`⚠️  Model output was truncated — salvaged ${parsed.length} complete topic(s).`);
+  return parsed;
+}
+
 async function main() {
   console.log("📅 Teja Reviews — Monthly Content Calendar Generator");
   console.log("======================================================");
@@ -157,14 +181,12 @@ Draw specific named products from these categories:
 - Lifestyle (bottles, bags, stationery)`;
 
   console.log("\n📡 Calling Gemini to generate 90 topics…");
-  const raw = await callGemini(prompt, 4000);
+  const raw = await callGemini(prompt, 8192);
 
-  // Extract JSON from response
+  // Extract JSON from response — tolerant of truncated output (see parseTopicsArray)
   let topics;
   try {
-    const jsonMatch = raw.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error("No JSON array found in response");
-    topics = JSON.parse(jsonMatch[0]);
+    topics = parseTopicsArray(raw);
   } catch (err) {
     console.error("❌ Failed to parse Gemini JSON:", err.message);
     console.error("Raw response (first 500 chars):", raw.slice(0, 500));
