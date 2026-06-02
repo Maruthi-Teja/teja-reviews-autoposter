@@ -162,6 +162,7 @@ Return ONLY a valid JSON array of 90 objects. No preamble, no explanation, no co
 {
   "product": "Exact product name including brand and model (e.g. \"boAt Airdopes 311 Pro\")",
   "brand": "Manufacturer brand only (e.g. \"boAt\")",
+  "productType": "Plural generic product category for buying guides (e.g. \"True Wireless Earbuds\", \"Security Cameras\", \"Niacinamide Serums\") — NOT the brand/model",
   "price": "₹XXX–₹X,XXX",
   "category": "Category Name",
   "imageQuery": "3-4 word pexels search term",
@@ -204,12 +205,13 @@ Keep categories ("category" field) accurate so same-category comparisons are pos
 
   // Validate and clean each topic
   const cleanedAll = topics.map(t => ({
-    product:    (t.product    || "").trim(),
-    brand:      (t.brand      || "").trim(),
-    price:      (t.price      || "₹500–₹5,000").trim(),
-    category:   (t.category   || "Tech & Electronics").trim(),
-    imageQuery: (t.imageQuery || "product review india").trim(),
-    keywords:   Array.isArray(t.keywords) ? t.keywords.slice(0, 3).map(k => (k || "").trim()) : []
+    product:     (t.product     || "").trim(),
+    brand:       (t.brand       || "").trim(),
+    productType: (t.productType || "").trim(),
+    price:       (t.price       || "₹500–₹5,000").trim(),
+    category:    (t.category    || "Tech & Electronics").trim(),
+    imageQuery:  (t.imageQuery  || "product review india").trim(),
+    keywords:    Array.isArray(t.keywords) ? t.keywords.slice(0, 3).map(k => (k || "").trim()) : []
   })).filter(t => t.product.length > 0);
 
   // Drop any generic-category entries that slipped through, so post.js never
