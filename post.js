@@ -450,21 +450,29 @@ function getTodaysReviewTopic() {
 }
 
 // Pick two SAME-CATEGORY specific products to compare, so we never pair unrelated
-// items (e.g. a serum vs a power bank). Starting from today's rotation, find the
-// first specific product that has a same-category, specific, not-yet-compared
+// items (e.g. a headset vs a mouse). Matches on productType (e.g. "Gaming
+// Headsets") rather than the broad category ("Gaming"), which lumps headsets,
+// keyboards and mice together. Starting from today's rotation, find the first
+// specific product that has a same-productType, specific, not-yet-compared
 // sibling. Returns { a, b }, or null when no sensible pair exists (→ skip + log).
 function getComparisonPair() {
   const pool  = getActiveTopics();
   const start = Math.floor(Date.now() / 86400000) % pool.length;
+  // Granular type key; falls back to category for legacy topics without productType.
+  const typeOf = t => (t.productType || t.category || "").trim().toLowerCase();
   for (let i = 0; i < pool.length; i++) {
     const a = pool[(start + i) % pool.length];
     if (!resolveProductIdentity(a).specific) continue;
+    const aType = typeOf(a);
+    if (!aType) continue;
     for (let j = 1; j < pool.length; j++) {
       const b = pool[(start + i + j) % pool.length];
       if (b.product === a.product)             continue;
-      if (b.category !== a.category)           continue;
+      if (typeOf(b) !== aType)                 continue;
       if (!resolveProductIdentity(b).specific) continue;
+      // Order-independent dedup so we never post both "A vs B" and "B vs A".
       if (isAlreadyPosted(`${a.product} vs ${b.product}`, "comparison")) continue;
+      if (isAlreadyPosted(`${b.product} vs ${a.product}`, "comparison")) continue;
       return { a, b };
     }
   }
@@ -1517,12 +1525,12 @@ async function main() {
 
     // ── COMPARISON ───────────────────────────────────────────────
     } else if (POST_TYPE === "comparison") {
-      // Compare two SAME-CATEGORY specific products (never serum vs power bank).
+      // Compare two SAME-PRODUCT-TYPE specific products (never headset vs mouse).
       const pair = getComparisonPair();
       if (!pair) {
         const attempted = getTodaysTopic().product;
-        console.log("⚠️  No same-category product pair available to compare. Skipping.");
-        logFailedPost(attempted, "No same-category product to compare", 0);
+        console.log("⚠️  No same-type product pair available to compare. Skipping.");
+        logFailedPost(attempted, "No same-type product to compare", 0);
         return;
       }
       const topicA = pair.a;
