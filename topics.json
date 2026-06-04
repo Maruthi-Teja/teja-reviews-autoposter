@@ -1,956 +1,931 @@
 {
   "generatedFor": "July 2026",
-  "generatedAt": "2026-06-02T09:37:02.798Z",
+  "generatedAt": "2026-06-02T13:52:07.970Z",
   "season": "Monsoon (rain season — focus on indoor, waterproof, home products)",
   "festivals": "Monsoon sales, Amazon Prime Day",
-  "count": 79,
+  "count": 71,
   "topics": [
     {
-      "product": "boAt Airdopes 141 Bluetooth Earbuds",
+      "product": "boAt Airdopes 141 ANC",
       "brand": "boAt",
-      "price": "₹1,000–₹2,000",
+      "productType": "True Wireless Earbuds",
+      "price": "₹1,499–₹2,499",
       "category": "Audio",
-      "imageQuery": "boAt Airdopes 141",
+      "imageQuery": "boAt Airdopes ANC",
       "keywords": [
-        "boAt Airdopes 141 india",
-        "wireless earbuds 2026",
-        "best budget earbuds"
+        "boAt Airdopes 141 ANC india",
+        "best TWS earbuds 2026",
+        "ANC earbuds price"
       ]
     },
     {
-      "product": "Noise ColorFit Pulse 2 Max Smartwatch",
+      "product": "Noise Buds VS106",
       "brand": "Noise",
-      "price": "₹2,000–₹3,000",
-      "category": "Wearables",
-      "imageQuery": "Noise ColorFit Pulse 2 Max",
-      "keywords": [
-        "Noise ColorFit Pulse 2 Max india",
-        "smartwatch for monsoon 2026",
-        "fitness tracker"
-      ]
-    },
-    {
-      "product": "Ambrane 20000mAh Power Bank",
-      "brand": "Ambrane",
-      "price": "₹1,000–₹2,000",
-      "category": "Mobile Accessories",
-      "imageQuery": "Ambrane 20000mAh Power Bank",
-      "keywords": [
-        "Ambrane power bank india",
-        "portable charger 2026",
-        "best power bank"
-      ]
-    },
-    {
-      "product": "Philips Hue Smart Bulb White and Color Ambiance",
-      "brand": "Philips Hue",
-      "price": "₹2,000–₹3,000",
-      "category": "Smart Home",
-      "imageQuery": "Philips Hue Smart Bulb",
-      "keywords": [
-        "Philips Hue smart bulb india",
-        "smart lighting 2026",
-        "color changing bulb"
-      ]
-    },
-    {
-      "product": "Redgear A15 Wired Gaming Headset",
-      "brand": "Redgear",
-      "price": "₹1,000–₹2,000",
-      "category": "Gaming",
-      "imageQuery": "Redgear A15 Gaming Headset",
-      "keywords": [
-        "Redgear A15 headset india",
-        "gaming headset under 2000 2026",
-        "PC gaming accessories"
-      ]
-    },
-    {
-      "product": "Minimalist Niacinamide 10% + Zinc 1% Serum",
-      "brand": "Minimalist",
-      "price": "₹500–₹1,000",
-      "category": "Skincare",
-      "imageQuery": "Minimalist Niacinamide Serum",
-      "keywords": [
-        "Minimalist Niacinamide serum india",
-        "acne serum 2026",
-        "oil control serum"
-      ]
-    },
-    {
-      "product": "Philips HP8100/46 Hair Dryer",
-      "brand": "Philips",
-      "price": "₹1,000–₹2,000",
-      "category": "Grooming Tools",
-      "imageQuery": "Philips HP8100 Hair Dryer",
-      "keywords": [
-        "Philips hair dryer india",
-        "quick dry hair dryer 2026",
-        "compact hair dryer"
-      ]
-    },
-    {
-      "product": "Mamaearth Onion Hair Oil",
-      "brand": "Mamaearth",
-      "price": "₹500–₹1,000",
-      "category": "Hair Care",
-      "imageQuery": "Mamaearth Onion Hair Oil",
-      "keywords": [
-        "Mamaearth onion hair oil india",
-        "hair fall control oil 2026",
-        "natural hair oil"
-      ]
-    },
-    {
-      "product": "Dove Deeply Nourishing Body Wash",
-      "brand": "Dove",
-      "price": "₹300–₹500",
-      "category": "Bath & Body",
-      "imageQuery": "Dove Deeply Nourishing Body Wash",
-      "keywords": [
-        "Dove body wash india",
-        "moisturizing body wash 2026",
-        "sensitive skin body wash"
-      ]
-    },
-    {
-      "product": "JBL Go 3 Bluetooth Speaker",
-      "brand": "JBL",
-      "price": "₹3,000–₹4,000",
+      "productType": "True Wireless Earbuds",
+      "price": "₹1,299–₹1,999",
       "category": "Audio",
-      "imageQuery": "JBL Go 3 Speaker",
+      "imageQuery": "Noise Buds VS106",
       "keywords": [
-        "JBL Go 3 india",
-        "portable waterproof speaker 2026",
-        "bluetooth speaker"
+        "Noise Buds VS106 india",
+        "budget TWS earbuds 2026",
+        "long battery earbuds"
       ]
     },
     {
-      "product": "Amazfit Bip U Pro Smartwatch",
-      "brand": "Amazfit",
-      "price": "₹4,000–₹5,000",
-      "category": "Wearables",
-      "imageQuery": "Amazfit Bip U Pro",
+      "product": "Ambrane Power Bank 20000mAh with Intelli-Charge",
+      "brand": "Ambrane",
+      "productType": "Power Banks",
+      "price": "₹999–₹1,599",
+      "category": "Mobile Accessories",
+      "imageQuery": "Ambrane 20000mAh power bank",
       "keywords": [
-        "Amazfit Bip U Pro india",
-        "GPS smartwatch 2026",
-        "health tracker"
+        "Ambrane power bank 20000mAh india",
+        "fast charging power bank 2026",
+        "portable charger for mobile"
       ]
     },
     {
       "product": "Mi Power Bank 3i 20000mAh",
       "brand": "Mi",
-      "price": "₹1,500–₹2,500",
+      "productType": "Power Banks",
+      "price": "₹1,299–₹1,999",
       "category": "Mobile Accessories",
       "imageQuery": "Mi Power Bank 3i 20000mAh",
       "keywords": [
-        "Mi Power Bank 3i india",
-        "high capacity power bank 2026",
-        "fast charging power bank"
+        "Mi Power Bank 3i 20000mAh india",
+        "best 20000mAh power bank 2026",
+        "Xiaomi power bank"
       ]
     },
     {
       "product": "Wipro Smart Bulb 9W B22",
       "brand": "Wipro",
-      "price": "₹500–₹1,000",
+      "productType": "Smart Bulbs",
+      "price": "₹499–₹799",
       "category": "Smart Home",
-      "imageQuery": "Wipro Smart Bulb",
+      "imageQuery": "Wipro smart bulb",
       "keywords": [
         "Wipro smart bulb india",
-        "wifi smart bulb 2026",
-        "energy saving bulb"
+        "smart LED bulb 2026",
+        "Wi-Fi enabled bulb"
       ]
     },
     {
-      "product": "Logitech G102 Lightsync Gaming Mouse",
+      "product": "Philips Smart Wi-Fi LED Bulb 9W",
+      "brand": "Philips",
+      "productType": "Smart Bulbs",
+      "price": "₹599–₹999",
+      "category": "Smart Home",
+      "imageQuery": "Philips smart Wi-Fi bulb",
+      "keywords": [
+        "Philips smart bulb india",
+        "smart lighting 2026",
+        "app controlled bulb"
+      ]
+    },
+    {
+      "product": "realme Smart Scale",
+      "brand": "realme",
+      "productType": "Smart Scales",
+      "price": "₹1,499–₹2,499",
+      "category": "Smart Home",
+      "imageQuery": "realme smart scale",
+      "keywords": [
+        "realme smart scale india",
+        "body composition scale 2026",
+        "health tracker scale"
+      ]
+    },
+    {
+      "product": "Mi Smart Band 8",
+      "brand": "Mi",
+      "productType": "Fitness Bands",
+      "price": "₹3,499–₹4,499",
+      "category": "Wearable Tech",
+      "imageQuery": "Mi Smart Band 8",
+      "keywords": [
+        "Mi Smart Band 8 india",
+        "fitness tracker band 2026",
+        "activity tracker watch"
+      ]
+    },
+    {
+      "product": "Noise ColorFit Pro 5",
+      "brand": "Noise",
+      "productType": "Smartwatches",
+      "price": "₹3,999–₹5,999",
+      "category": "Wearable Tech",
+      "imageQuery": "Noise ColorFit Pro 5",
+      "keywords": [
+        "Noise ColorFit Pro 5 india",
+        "bluetooth calling smartwatch 2026",
+        "AMOLED display smartwatch"
+      ]
+    },
+    {
+      "product": "boAt Xtend Smartwatch",
+      "brand": "boAt",
+      "productType": "Smartwatches",
+      "price": "₹2,999–₹3,999",
+      "category": "Wearable Tech",
+      "imageQuery": "boAt Xtend Smartwatch",
+      "keywords": [
+        "boAt Xtend smartwatch india",
+        "fitness smartwatch 2026",
+        "SpO2 tracking watch"
+      ]
+    },
+    {
+      "product": "Logitech M185 Wireless Mouse",
       "brand": "Logitech",
-      "price": "₹1,000–₹2,000",
-      "category": "Gaming",
-      "imageQuery": "Logitech G102 Mouse",
+      "productType": "Wireless Mice",
+      "price": "₹699–₹999",
+      "category": "Tech & Gaming",
+      "imageQuery": "Logitech M185 wireless mouse",
       "keywords": [
-        "Logitech G102 india",
-        "gaming mouse under 1500 2026",
-        "RGB gaming mouse"
+        "Logitech M185 mouse india",
+        "wireless computer mouse 2026",
+        "ergonomic mouse"
       ]
     },
     {
-      "product": "The Derma Co 2% Hyaluronic Acid Serum",
-      "brand": "The Derma Co",
-      "price": "₹500–₹1,000",
-      "category": "Skincare",
-      "imageQuery": "The Derma Co Hyaluronic Acid Serum",
+      "product": "HP 200 Wireless Mouse",
+      "brand": "HP",
+      "productType": "Wireless Mice",
+      "price": "₹799–₹1,099",
+      "category": "Tech & Gaming",
+      "imageQuery": "HP 200 wireless mouse",
       "keywords": [
-        "The Derma Co hyaluronic acid india",
-        "hydrating serum 2026",
-        "dry skin serum"
+        "HP 200 mouse india",
+        "reliable wireless mouse 2026",
+        "office mouse"
       ]
     },
     {
-      "product": "Havells HD3150 Hair Dryer",
-      "brand": "Havells",
-      "price": "₹1,000–₹2,000",
-      "category": "Grooming Tools",
-      "imageQuery": "Havells HD3150 Hair Dryer",
+      "product": "Redr M701 RGB Gaming Mouse",
+      "brand": "Redr",
+      "productType": "Gaming Mice",
+      "price": "₹999–₹1,499",
+      "category": "Tech & Gaming",
+      "imageQuery": "Redr M701 gaming mouse",
       "keywords": [
-        "Havells hair dryer india",
+        "Redr M701 gaming mouse india",
+        "RGB gaming mouse 2026",
+        "programmable gaming mouse"
+      ]
+    },
+    {
+      "product": "Zebronics Zeb-Jaguar Gaming Keyboard",
+      "brand": "Zebronics",
+      "productType": "Gaming Keyboards",
+      "price": "₹1,299–₹1,999",
+      "category": "Tech & Gaming",
+      "imageQuery": "Zebronics gaming keyboard",
+      "keywords": [
+        "Zebronics Zeb-Jaguar keyboard india",
+        "LED gaming keyboard 2026",
+        "mechanical feel keyboard"
+      ]
+    },
+    {
+      "product": "Ant Esports MK3000 Mechanical Keyboard",
+      "brand": "Ant Esports",
+      "productType": "Mechanical Keyboards",
+      "price": "₹2,499–₹3,499",
+      "category": "Tech & Gaming",
+      "imageQuery": "Ant Esports MK3000 keyboard",
+      "keywords": [
+        "Ant Esports MK3000 india",
+        "tactile mechanical keyboard 2026",
+        "gaming keyboard RGB"
+      ]
+    },
+    {
+      "product": "Razer BlackShark V2 X Gaming Headset",
+      "brand": "Razer",
+      "productType": "Gaming Headsets",
+      "price": "₹3,999–₹4,999",
+      "category": "Tech & Gaming",
+      "imageQuery": "Razer BlackShark V2 X headset",
+      "keywords": [
+        "Razer BlackShark V2 X india",
+        "PC gaming headset 2026",
+        "surround sound headset"
+      ]
+    },
+    {
+      "product": "Logitech G435 LIGHTSPEED Wireless Gaming Headset",
+      "brand": "Logitech",
+      "productType": "Gaming Headsets",
+      "price": "₹5,999–₹7,999",
+      "category": "Tech & Gaming",
+      "imageQuery": "Logitech G435 headset",
+      "keywords": [
+        "Logitech G435 india",
+        "wireless gaming headset 2026",
+        "lightweight gaming headset"
+      ]
+    },
+    {
+      "product": "tp-link Smart Plug Mini",
+      "brand": "TP-Link",
+      "productType": "Smart Plugs",
+      "price": "₹799–₹1,199",
+      "category": "Smart Home",
+      "imageQuery": "TP-Link smart plug mini",
+      "keywords": [
+        "TP-Link smart plug india",
+        "Wi-Fi smart plug 2026",
+        "remote control plug"
+      ]
+    },
+    {
+      "product": "Mi Smart Plug 2 (Wi-Fi)",
+      "brand": "Mi",
+      "productType": "Smart Plugs",
+      "price": "₹699–₹999",
+      "category": "Smart Home",
+      "imageQuery": "Mi smart plug 2",
+      "keywords": [
+        "Mi smart plug 2 india",
+        "smart home plug 2026",
+        "voice controlled plug"
+      ]
+    },
+    {
+      "product": "EZVIZ C3W Color Night Vision Wi-Fi Camera",
+      "brand": "EZVIZ",
+      "productType": "Security Cameras",
+      "price": "₹4,499–₹5,499",
+      "category": "Smart Home",
+      "imageQuery": "EZVIZ C3W camera",
+      "keywords": [
+        "EZVIZ C3W camera india",
+        "outdoor security camera 2026",
+        "color night vision camera"
+      ]
+    },
+    {
+      "product": "Mi Home Security Camera 360° 1080p",
+      "brand": "Mi",
+      "productType": "Security Cameras",
+      "price": "₹2,999–₹3,999",
+      "category": "Smart Home",
+      "imageQuery": "Mi Home Security Camera 360",
+      "keywords": [
+        "Mi Home Security Camera 360 india",
+        "indoor security camera 2026",
+        "pan tilt zoom camera"
+      ]
+    },
+    {
+      "product": "Redmi SonicBrush TB400 Electric Toothbrush",
+      "brand": "Redmi",
+      "productType": "Electric Toothbrushes",
+      "price": "₹1,499–₹2,499",
+      "category": "Personal Care",
+      "imageQuery": "Redmi SonicBrush TB400",
+      "keywords": [
+        "Redmi SonicBrush TB400 india",
+        "electric toothbrush 2026",
+        "sonic toothbrush"
+      ]
+    },
+    {
+      "product": "Philips Sonicare ProtectiveClean 4100",
+      "brand": "Philips",
+      "productType": "Electric Toothbrushes",
+      "price": "₹3,999–₹4,999",
+      "category": "Personal Care",
+      "imageQuery": "Philips Sonicare ProtectiveClean 4100",
+      "keywords": [
+        "Philips Sonicare 4100 india",
+        "premium electric toothbrush 2026",
+        "gum care toothbrush"
+      ]
+    },
+    {
+      "product": "Nova NHD-812 Professional Hair Dryer",
+      "brand": "Nova",
+      "productType": "Hair Dryers",
+      "price": "₹1,299–₹1,999",
+      "category": "Personal Care",
+      "imageQuery": "Nova NHD-812 hair dryer",
+      "keywords": [
+        "Nova NHD-812 hair dryer india",
         "professional hair dryer 2026",
         "ionic hair dryer"
       ]
     },
     {
-      "product": "Plum Olive & Macadamia Mega Moisturizing Hair Mask",
-      "brand": "Plum",
-      "price": "₹500–₹1,000",
-      "category": "Hair Care",
-      "imageQuery": "Plum Hair Mask",
+      "product": "Havells HD3151 Hair Dryer",
+      "brand": "Havells",
+      "productType": "Hair Dryers",
+      "price": "₹1,799–₹2,499",
+      "category": "Personal Care",
+      "imageQuery": "Havells HD3151 hair dryer",
       "keywords": [
-        "Plum hair mask india",
-        "deep conditioning hair mask 2026",
-        "frizzy hair treatment"
-      ]
-    },
-    {
-      "product": "Pears Pure and Gentle Soap",
-      "brand": "Pears",
-      "price": "₹100–₹200",
-      "category": "Bath & Body",
-      "imageQuery": "Pears Soap",
-      "keywords": [
-        "Pears soap india",
-        "glycerin soap 2026",
-        "gentle cleansing bar"
-      ]
-    },
-    {
-      "product": "Sony SRS-XB13 Bluetooth Speaker",
-      "brand": "Sony",
-      "price": "₹4,000–₹5,000",
-      "category": "Audio",
-      "imageQuery": "Sony SRS-XB13 Speaker",
-      "keywords": [
-        "Sony SRS-XB13 india",
-        "waterproof portable speaker 2026",
-        "extra bass speaker"
-      ]
-    },
-    {
-      "product": "Fitbit Inspire 3 Fitness Tracker",
-      "brand": "Fitbit",
-      "price": "₹6,000–₹7,000",
-      "category": "Wearables",
-      "imageQuery": "Fitbit Inspire 3",
-      "keywords": [
-        "Fitbit Inspire 3 india",
-        "activity tracker 2026",
-        "sleep tracking band"
-      ]
-    },
-    {
-      "product": "Anker PowerCore Slim 10000 PD",
-      "brand": "Anker",
-      "price": "₹2,000–₹3,000",
-      "category": "Mobile Accessories",
-      "imageQuery": "Anker PowerCore Slim 10000 PD",
-      "keywords": [
-        "Anker PowerCore Slim india",
-        "PD power bank 2026",
-        "fast portable charger"
-      ]
-    },
-    {
-      "product": "TP-Link Smart Plug HS100",
-      "brand": "TP-Link",
-      "price": "₹1,000–₹2,000",
-      "category": "Smart Home",
-      "imageQuery": "TP-Link Smart Plug HS100",
-      "keywords": [
-        "TP-Link smart plug india",
-        "wifi smart plug 2026",
-        "remote control plug"
-      ]
-    },
-    {
-      "product": "HyperX Cloud Stinger Core Gaming Headset",
-      "brand": "HyperX",
-      "price": "₹3,000–₹4,000",
-      "category": "Gaming",
-      "imageQuery": "HyperX Cloud Stinger Core",
-      "keywords": [
-        "HyperX Cloud Stinger Core india",
-        "comfortable gaming headset 2026",
-        "PS5 gaming headset"
-      ]
-    },
-    {
-      "product": "WOW Skin Science Ubtan Face Serum",
-      "brand": "WOW Skin Science",
-      "price": "₹500–₹1,000",
-      "category": "Skincare",
-      "imageQuery": "WOW Skin Science Ubtan Serum",
-      "keywords": [
-        "WOW Skin Science ubtan serum india",
-        "anti aging serum 2026",
-        "turmeric serum"
-      ]
-    },
-    {
-      "product": "Remington S8590 Ceramic Hair Straightener",
-      "brand": "Remington",
-      "price": "₹3,000–₹4,000",
-      "category": "Grooming Tools",
-      "imageQuery": "Remington S8590 Straightener",
-      "keywords": [
-        "Remington hair straightener india",
-        "ceramic hair straightener 2026",
-        "anti frizz straightener"
-      ]
-    },
-    {
-      "product": "mCaffeine Coffee Shampoo",
-      "brand": "mCaffeine",
-      "price": "₹300–₹500",
-      "category": "Hair Care",
-      "imageQuery": "mCaffeine Coffee Shampoo",
-      "keywords": [
-        "mCaffeine coffee shampoo india",
-        "hair fall shampoo 2026",
-        "caffeine hair care"
-      ]
-    },
-    {
-      "product": "Nivea Milk Delights Diamond Body Lotion",
-      "brand": "Nivea",
-      "price": "₹300–₹500",
-      "category": "Bath & Body",
-      "imageQuery": "Nivea Milk Delights Body Lotion",
-      "keywords": [
-        "Nivea body lotion india",
-        "hydrating body lotion 2026",
-        "dry skin moisturizer"
-      ]
-    },
-    {
-      "product": "boAt Stone 1000 Bluetooth Speaker",
-      "brand": "boAt",
-      "price": "₹3,000–₹4,000",
-      "category": "Audio",
-      "imageQuery": "boAt Stone 1000",
-      "keywords": [
-        "boAt Stone 1000 india",
-        "powerful bluetooth speaker 2026",
-        "water resistant speaker"
-      ]
-    },
-    {
-      "product": "realme Smartwatch S",
-      "brand": "realme",
-      "price": "₹5,000–₹6,000",
-      "category": "Wearables",
-      "imageQuery": "realme Smartwatch S",
-      "keywords": [
-        "realme Smartwatch S india",
-        "AMOLED smartwatch 2026",
-        "blood oxygen tracker"
-      ]
-    },
-    {
-      "product": "Syska 10000mAh Power Bank",
-      "brand": "Syska",
-      "price": "₹500–₹1,000",
-      "category": "Mobile Accessories",
-      "imageQuery": "Syska 10000mAh Power Bank",
-      "keywords": [
-        "Syska power bank india",
-        "portable charger 2026",
-        "slim power bank"
-      ]
-    },
-    {
-      "product": "Mi Smart Plug 2",
-      "brand": "Mi",
-      "price": "₹700–₹1,200",
-      "category": "Smart Home",
-      "imageQuery": "Mi Smart Plug 2",
-      "keywords": [
-        "Mi smart plug 2 india",
-        "wifi smart plug 2026",
-        "smart home automation"
-      ]
-    },
-    {
-      "product": "Cosmic Byte GS410 Gaming Headset",
-      "brand": "Cosmic Byte",
-      "price": "₹1,000–₹2,000",
-      "category": "Gaming",
-      "imageQuery": "Cosmic Byte GS410",
-      "keywords": [
-        "Cosmic Byte GS410 india",
-        "budget gaming headset 2026",
-        "stereo gaming headset"
-      ]
-    },
-    {
-      "product": "Plum Green Tea Night Gel",
-      "brand": "Plum",
-      "price": "₹500–₹1,000",
-      "category": "Skincare",
-      "imageQuery": "Plum Green Tea Night Gel",
-      "keywords": [
-        "Plum green tea gel india",
-        "night gel for acne 2026",
-        "oil free moisturizer"
-      ]
-    },
-    {
-      "product": "Nova NHP8000 Professional Hair Dryer",
-      "brand": "Nova",
-      "price": "₹1,000–₹2,000",
-      "category": "Grooming Tools",
-      "imageQuery": "Nova NHP8000 Hair Dryer",
-      "keywords": [
-        "Nova hair dryer india",
-        "professional hair dryer 2026",
-        "high power hair dryer"
-      ]
-    },
-    {
-      "product": "Biotique Banana Hair Masque",
-      "brand": "Biotique",
-      "price": "₹200–₹400",
-      "category": "Hair Care",
-      "imageQuery": "Biotique Banana Hair Masque",
-      "keywords": [
-        "Biotique banana hair masque india",
-        "hair strengthening mask 2026",
-        "natural hair care"
-      ]
-    },
-    {
-      "product": "Luxuriously Soft Body Lotion",
-      "brand": "Nivea",
-      "price": "₹300–₹500",
-      "category": "Bath & Body",
-      "imageQuery": "Nivea Soft Body Lotion",
-      "keywords": [
-        "Nivea soft body lotion india",
-        "daily moisturizer 2026",
-        "skin softening lotion"
-      ]
-    },
-    {
-      "product": "Mivi Play Bluetooth Speaker",
-      "brand": "Mivi",
-      "price": "₹1,000–₹2,000",
-      "category": "Audio",
-      "imageQuery": "Mivi Play Bluetooth Speaker",
-      "keywords": [
-        "Mivi Play speaker india",
-        "compact bluetooth speaker 2026",
-        "party speaker"
-      ]
-    },
-    {
-      "product": "NoiseFit Agile 2 Smartwatch",
-      "brand": "Noise",
-      "price": "₹3,000–₹4,000",
-      "category": "Wearables",
-      "imageQuery": "NoiseFit Agile 2",
-      "keywords": [
-        "NoiseFit Agile 2 india",
-        "AMOLED display smartwatch 2026",
-        "fitness band"
-      ]
-    },
-    {
-      "product": "URBN 10000mAh Power Bank",
-      "brand": "URBN",
-      "price": "₹700–₹1,200",
-      "category": "Mobile Accessories",
-      "imageQuery": "URBN 10000mAh Power Bank",
-      "keywords": [
-        "URBN power bank india",
-        "slim power bank 2026",
-        "portable charger"
-      ]
-    },
-    {
-      "product": "Wipro Smart Bulb 12W B22 RGB",
-      "brand": "Wipro",
-      "price": "₹800–₹1,500",
-      "category": "Smart Home",
-      "imageQuery": "Wipro Smart Bulb RGB",
-      "keywords": [
-        "Wipro RGB smart bulb india",
-        "color changing smart light 2026",
-        "smart home lighting"
-      ]
-    },
-    {
-      "product": "Logitech G402 Hyperion Fury Gaming Mouse",
-      "brand": "Logitech",
-      "price": "₹2,000–₹3,000",
-      "category": "Gaming",
-      "imageQuery": "Logitech G402 Mouse",
-      "keywords": [
-        "Logitech G402 india",
-        "fps gaming mouse 2026",
-        "high speed gaming mouse"
-      ]
-    },
-    {
-      "product": "Minimalist Salicylic Acid 2% PHA 3% Alcohol-Free Toner",
-      "brand": "Minimalist",
-      "price": "₹500–₹1,000",
-      "category": "Skincare",
-      "imageQuery": "Minimalist Salicylic Acid Toner",
-      "keywords": [
-        "Minimalist salicylic acid toner india",
-        "acne toner 2026",
-        "pore minimizing toner"
+        "Havells HD3151 hair dryer india",
+        "compact hair dryer 2026",
+        "heat settings hair dryer"
       ]
     },
     {
       "product": "Philips HP8302 Hair Straightener",
       "brand": "Philips",
-      "price": "₹1,500–₹2,500",
-      "category": "Grooming Tools",
-      "imageQuery": "Philips HP8302 Straightener",
+      "productType": "Hair Straighteners",
+      "price": "₹1,999–₹2,799",
+      "category": "Personal Care",
+      "imageQuery": "Philips HP8302 hair straightener",
       "keywords": [
-        "Philips hair straightener india",
-        "ceramic plates straightener 2026",
-        "quick heat hair straightener"
-      ]
-    },
-    {
-      "product": "Mamaearth Tea Tree Hair Mask",
-      "brand": "Mamaearth",
-      "price": "₹500–₹1,000",
-      "category": "Hair Care",
-      "imageQuery": "Mamaearth Tea Tree Hair Mask",
-      "keywords": [
-        "Mamaearth tea tree hair mask india",
-        "anti dandruff hair mask 2026",
-        "scalp treatment"
-      ]
-    },
-    {
-      "product": "Savlon Glycerin Soap",
-      "brand": "Savlon",
-      "price": "₹100–₹200",
-      "category": "Bath & Body",
-      "imageQuery": "Savlon Glycerin Soap",
-      "keywords": [
-        "Savlon glycerin soap india",
-        "germ protection soap 2026",
-        "hygienic soap"
-      ]
-    },
-    {
-      "product": "Anker Soundcore Motion Plus Bluetooth Speaker",
-      "brand": "Anker",
-      "price": "₹7,000–₹8,000",
-      "category": "Audio",
-      "imageQuery": "Anker Soundcore Motion Plus",
-      "keywords": [
-        "Anker Soundcore Motion Plus india",
-        "hi-res audio speaker 2026",
-        "waterproof bluetooth speaker"
-      ]
-    },
-    {
-      "product": "Amazfit GTS 2 Mini Smartwatch",
-      "brand": "Amazfit",
-      "price": "₹7,000–₹8,000",
-      "category": "Wearables",
-      "imageQuery": "Amazfit GTS 2 Mini",
-      "keywords": [
-        "Amazfit GTS 2 Mini india",
-        "slim smartwatch 2026",
-        "heart rate monitor"
-      ]
-    },
-    {
-      "product": "Samsung 25W Travel Adapter",
-      "brand": "Samsung",
-      "price": "₹1,000–₹2,000",
-      "category": "Mobile Accessories",
-      "imageQuery": "Samsung 25W Travel Adapter",
-      "keywords": [
-        "Samsung 25W adapter india",
-        "fast charging adapter 2026",
-        "USB C charger"
-      ]
-    },
-    {
-      "product": "Mi 720p Smart Security Camera",
-      "brand": "Mi",
-      "price": "₹2,000–₹3,000",
-      "category": "Smart Home",
-      "imageQuery": "Mi 720p Smart Camera",
-      "keywords": [
-        "Mi smart camera india",
-        "home security camera 2026",
-        "indoor security camera"
-      ]
-    },
-    {
-      "product": "Redgear Manta MT20 RGB Mousepad",
-      "brand": "Redgear",
-      "price": "₹1,000–₹2,000",
-      "category": "Gaming",
-      "imageQuery": "Redgear Manta MT20",
-      "keywords": [
-        "Redgear Manta MT20 india",
-        "RGB mousepad 2026",
-        "gaming desk accessories"
-      ]
-    },
-    {
-      "product": "The Derma Co 1% Hyaluronic Acid Serum",
-      "brand": "The Derma Co",
-      "price": "₹400–₹800",
-      "category": "Skincare",
-      "imageQuery": "The Derma Co Hyaluronic Acid Serum",
-      "keywords": [
-        "The Derma Co hyaluronic acid india",
-        "hydrating serum 2026",
-        "plump skin serum"
-      ]
-    },
-    {
-      "product": "Kemei KM-5018 Hair Straightener",
-      "brand": "Kemei",
-      "price": "₹800–₹1,500",
-      "category": "Grooming Tools",
-      "imageQuery": "Kemei KM-5018 Straightener",
-      "keywords": [
-        "Kemei hair straightener india",
-        "ceramic straightener 2026",
+        "Philips HP8302 straightener india",
+        "ceramic hair straightener 2026",
         "travel hair straightener"
       ]
     },
     {
-      "product": "Pilgrim Argan Oil Shampoo",
-      "brand": "Pilgrim",
-      "price": "₹400–₹700",
-      "category": "Hair Care",
-      "imageQuery": "Pilgrim Argan Oil Shampoo",
+      "product": "Vega VHSH-01 Hair Straightener",
+      "brand": "Vega",
+      "productType": "Hair Straighteners",
+      "price": "₹1,499–₹2,199",
+      "category": "Personal Care",
+      "imageQuery": "Vega VHSH-01 hair straightener",
       "keywords": [
-        "Pilgrim argan oil shampoo india",
-        "frizz control shampoo 2026",
-        "moroccan argan oil"
+        "Vega VHSH-01 straightener india",
+        "quick heat hair straightener 2026",
+        "anti-frizz straightener"
       ]
     },
     {
-      "product": "Lifebuoy Germ Protection Soap",
-      "brand": "Lifebuoy",
-      "price": "₹100–₹200",
-      "category": "Bath & Body",
-      "imageQuery": "Lifebuoy Soap",
+      "product": "SYSKA HC800 Hair Styler",
+      "brand": "SYSKA",
+      "productType": "Hair Stylers",
+      "price": "₹1,599–₹2,299",
+      "category": "Personal Care",
+      "imageQuery": "SYSKA HC800 hair styler",
       "keywords": [
-        "Lifebuoy soap india",
-        "antibacterial soap 2026",
-        "personal hygiene"
+        "SYSKA HC800 hair styler india",
+        "multi hair styler 2026",
+        "curler and straightener"
       ]
     },
     {
-      "product": "boAt Airdopes 411 ANC Earbuds",
-      "brand": "boAt",
-      "price": "₹3,000–₹4,000",
-      "category": "Audio",
-      "imageQuery": "boAt Airdopes 411 ANC",
+      "product": "Man Matters Beard Trimmer",
+      "brand": "Man Matters",
+      "productType": "Beard Trimmers",
+      "price": "₹1,999–₹2,999",
+      "category": "Personal Care",
+      "imageQuery": "Man Matters beard trimmer",
       "keywords": [
-        "boAt Airdopes 411 ANC india",
-        "noise cancelling earbuds 2026",
-        "active noise cancellation"
+        "Man Matters beard trimmer india",
+        "cordless beard trimmer 2026",
+        "trimmer for men"
       ]
     },
     {
-      "product": "NoiseFit Halo Smartwatch",
-      "brand": "Noise",
-      "price": "₹4,000–₹5,000",
-      "category": "Wearables",
-      "imageQuery": "NoiseFit Halo",
-      "keywords": [
-        "NoiseFit Halo india",
-        "round dial smartwatch 2026",
-        "Bluetooth calling smartwatch"
-      ]
-    },
-    {
-      "product": "PD 65W USB C Charger",
-      "brand": "Anker",
-      "price": "₹2,000–₹3,000",
-      "category": "Mobile Accessories",
-      "imageQuery": "Anker 65W USB C Charger",
-      "keywords": [
-        "Anker 65W charger india",
-        "fast charger for laptop 2026",
-        "universal USB C charger"
-      ]
-    },
-    {
-      "product": "Mi 360° 1080p Smart Security Camera",
+      "product": "Mi Cordless Men's Grooming Kit",
       "brand": "Mi",
-      "price": "₹3,000–₹4,000",
-      "category": "Smart Home",
-      "imageQuery": "Mi 360 Camera",
+      "productType": "Grooming Kits",
+      "price": "₹2,499–₹3,499",
+      "category": "Personal Care",
+      "imageQuery": "Mi Cordless Men's Grooming Kit",
       "keywords": [
-        "Mi 360 camera india",
-        "pan tilt zoom camera 2026",
-        "smart home security"
+        "Mi Cordless Grooming Kit india",
+        "men's grooming kit 2026",
+        "all in one trimmer"
       ]
     },
     {
-      "product": "Logitech K480 Bluetooth Keyboard",
-      "brand": "Logitech",
-      "price": "₹3,000–₹4,000",
-      "category": "Gaming",
-      "imageQuery": "Logitech K480 Keyboard",
-      "keywords": [
-        "Logitech K480 india",
-        "multi device keyboard 2026",
-        "wireless keyboard"
-      ]
-    },
-    {
-      "product": "Mamaearth Vitamin C Serum",
-      "brand": "Mamaearth",
-      "price": "₹700–₹1,200",
+      "product": "Minimalist Niacinamide 10% + Zinc 1%",
+      "brand": "Minimalist",
+      "productType": "Niacinamide Serums",
+      "price": "₹599–₹799",
       "category": "Skincare",
-      "imageQuery": "Mamaearth Vitamin C Serum",
+      "imageQuery": "Minimalist Niacinamide serum",
+      "keywords": [
+        "Minimalist Niacinamide 10% india",
+        "acne serum 2026",
+        "oil control serum"
+      ]
+    },
+    {
+      "product": "The Derma Co 2% Hyaluronic Sunscreen Aqua Gel",
+      "brand": "The Derma Co",
+      "productType": "Hyaluronic Sunscreens",
+      "price": "₹499–₹699",
+      "category": "Skincare",
+      "imageQuery": "The Derma Co Hyaluronic Sunscreen",
+      "keywords": [
+        "The Derma Co Hyaluronic Sunscreen india",
+        "sunscreen for oily skin 2026",
+        "lightweight sunscreen"
+      ]
+    },
+    {
+      "product": "Mamaearth Vitamin C Face Serum",
+      "brand": "Mamaearth",
+      "productType": "Vitamin C Serums",
+      "price": "₹599–₹799",
+      "category": "Skincare",
+      "imageQuery": "Mamaearth Vitamin C serum",
       "keywords": [
         "Mamaearth Vitamin C serum india",
         "brightening serum 2026",
-        "skin radiance serum"
+        "antioxidant serum"
       ]
     },
     {
-      "product": "Philips BHS640 Hair Straightener",
-      "brand": "Philips",
-      "price": "₹2,000–₹3,000",
-      "category": "Grooming Tools",
-      "imageQuery": "Philips BHS640 Straightener",
-      "keywords": [
-        "Philips hair straightener india",
-        "keratin infusion plates 2026",
-        "smooth hair straightener"
-      ]
-    },
-    {
-      "product": "Plum Chamomile Shampoo",
+      "product": "Plum Green Tea Alcohol-Free Toner",
       "brand": "Plum",
-      "price": "₹400–₹700",
-      "category": "Hair Care",
-      "imageQuery": "Plum Chamomile Shampoo",
-      "keywords": [
-        "Plum chamomile shampoo india",
-        "soothing shampoo 2026",
-        "sensitive scalp shampoo"
-      ]
-    },
-    {
-      "product": "Yardley London English Rose Soap",
-      "brand": "Yardley London",
-      "price": "₹100–₹200",
-      "category": "Bath & Body",
-      "imageQuery": "Yardley London Rose Soap",
-      "keywords": [
-        "Yardley Rose soap india",
-        "floral scented soap 2026",
-        "classic soap"
-      ]
-    },
-    {
-      "product": "Anker Soundcore 2 Bluetooth Speaker",
-      "brand": "Anker",
-      "price": "₹4,000–₹5,000",
-      "category": "Audio",
-      "imageQuery": "Anker Soundcore 2",
-      "keywords": [
-        "Anker Soundcore 2 india",
-        "waterproof bluetooth speaker 2026",
-        "long battery life speaker"
-      ]
-    },
-    {
-      "product": "realme Watch 3 Pro",
-      "brand": "realme",
-      "price": "₹4,000–₹5,000",
-      "category": "Wearables",
-      "imageQuery": "realme Watch 3 Pro",
-      "keywords": [
-        "realme Watch 3 Pro india",
-        "AMOLED GPS smartwatch 2026",
-        "fitness tracking"
-      ]
-    },
-    {
-      "product": "Belkin USB C to Lightning Cable",
-      "brand": "Belkin",
-      "price": "₹1,000–₹2,000",
-      "category": "Mobile Accessories",
-      "imageQuery": "Belkin USB C Lightning Cable",
-      "keywords": [
-        "Belkin USB C cable india",
-        "MFi certified cable 2026",
-        "iPhone charging cable"
-      ]
-    },
-    {
-      "product": "TP-Link Tapo C100 Security Camera",
-      "brand": "TP-Link",
-      "price": "₹2,000–₹3,000",
-      "category": "Smart Home",
-      "imageQuery": "TP-Link Tapo C100",
-      "keywords": [
-        "TP-Link Tapo C100 india",
-        "1080p security camera 2026",
-        "indoor camera"
-      ]
-    },
-    {
-      "product": "Redgear Cosmo 7.1 USB Gaming Headset",
-      "brand": "Redgear",
-      "price": "₹2,000–₹3,000",
-      "category": "Gaming",
-      "imageQuery": "Redgear Cosmo 7.1",
-      "keywords": [
-        "Redgear Cosmo 7.1 india",
-        "virtual surround sound headset 2026",
-        "PC gaming"
-      ]
-    },
-    {
-      "product": "Minimalist Niacinamide 5% + Hyaluronic Acid 1% Serum",
-      "brand": "Minimalist",
-      "price": "₹500–₹1,000",
+      "productType": "Toners",
+      "price": "₹349–₹499",
       "category": "Skincare",
-      "imageQuery": "Minimalist Niacinamide HA Serum",
+      "imageQuery": "Plum Green Tea toner",
       "keywords": [
-        "Minimalist Niacinamide HA serum india",
-        "hydrating acne serum 2026",
-        "balanced skin serum"
+        "Plum Green Tea toner india",
+        "oil control toner 2026",
+        "refreshing toner"
       ]
     },
     {
-      "product": "Havells HC4045 Hair Dryer",
-      "brand": "Havells",
-      "price": "₹2,000–₹3,000",
-      "category": "Grooming Tools",
-      "imageQuery": "Havells HC4045 Hair Dryer",
+      "product": "Dot & Key Ceramide Cream",
+      "brand": "Dot & Key",
+      "productType": "Ceramide Moisturizers",
+      "price": "₹599–₹799",
+      "category": "Skincare",
+      "imageQuery": "Dot & Key Ceramide Cream",
       "keywords": [
-        "Havells hair dryer india",
-        "ionic hair dryer 2026",
-        "professional styling"
+        "Dot & Key Ceramide Cream india",
+        "barrier repair moisturizer 2026",
+        "hydrating cream"
       ]
     },
     {
-      "product": "WOW Skin Science Red Onion Black Seed Oil Shampoo",
+      "product": "mCaffeine Naked Detox Green Tea Face Wash",
+      "brand": "mCaffeine",
+      "productType": "Face Washes",
+      "price": "₹299–₹399",
+      "category": "Skincare",
+      "imageQuery": "mCaffeine Green Tea Face Wash",
+      "keywords": [
+        "mCaffeine Green Tea Face Wash india",
+        "detoxifying face wash 2026",
+        "refreshing face wash"
+      ]
+    },
+    {
+      "product": "Pilgrim Salicylic Acid 2% Serum",
+      "brand": "Pilgrim",
+      "productType": "Salicylic Acid Serums",
+      "price": "₹699–₹899",
+      "category": "Skincare",
+      "imageQuery": "Pilgrim Salicylic Acid serum",
+      "keywords": [
+        "Pilgrim Salicylic Acid serum india",
+        "acne treatment serum 2026",
+        "pore minimizing serum"
+      ]
+    },
+    {
+      "product": "WOW Skin Science Anti-Aging Night Cream",
       "brand": "WOW Skin Science",
-      "price": "₹400–₹700",
-      "category": "Hair Care",
-      "imageQuery": "WOW Red Onion Shampoo",
-      "keywords": [
-        "WOW Red Onion Shampoo india",
-        "hair fall control shampoo 2026",
-        "onion oil shampoo"
-      ]
-    },
-    {
-      "product": "Lux Velvet Jasmine & Vitamin E Soap",
-      "brand": "Lux",
-      "price": "₹100–₹200",
-      "category": "Bath & Body",
-      "imageQuery": "Lux Velvet Soap",
-      "keywords": [
-        "Lux Velvet soap india",
-        "fragrant body soap 2026",
-        "skin softening soap"
-      ]
-    },
-    {
-      "product": "JBL Flip 6 Bluetooth Speaker",
-      "brand": "JBL",
-      "price": "₹9,000–₹10,000",
-      "category": "Audio",
-      "imageQuery": "JBL Flip 6 Speaker",
-      "keywords": [
-        "JBL Flip 6 india",
-        "waterproof portable speaker 2026",
-        "party speaker"
-      ]
-    },
-    {
-      "product": "Fitbit Charge 5 Fitness Tracker",
-      "brand": "Fitbit",
-      "price": "₹12,000–₹13,000",
-      "category": "Wearables",
-      "imageQuery": "Fitbit Charge 5",
-      "keywords": [
-        "Fitbit Charge 5 india",
-        "advanced fitness tracker 2026",
-        "ECG app"
-      ]
-    },
-    {
-      "product": "Mi 20000mAh Power Bank 3",
-      "brand": "Mi",
-      "price": "₹2,000–₹3,000",
-      "category": "Mobile Accessories",
-      "imageQuery": "Mi 20000mAh Power Bank 3",
-      "keywords": [
-        "Mi Power Bank 3 india",
-        "dual port power bank 2026",
-        "fast charging power bank"
-      ]
-    },
-    {
-      "product": "Philips Hue Smart Plug",
-      "brand": "Philips Hue",
-      "price": "₹2,500–₹3,500",
-      "category": "Smart Home",
-      "imageQuery": "Philips Hue Smart Plug",
-      "keywords": [
-        "Philips Hue smart plug india",
-        "smart plug for appliances 2026",
-        "Zigbee smart plug"
-      ]
-    },
-    {
-      "product": "Logitech G203 Lightsync Gaming Mouse",
-      "brand": "Logitech",
-      "price": "₹1,500–₹2,500",
-      "category": "Gaming",
-      "imageQuery": "Logitech G203 Mouse",
-      "keywords": [
-        "Logitech G203 india",
-        "gaming mouse under 2000 2026",
-        "RGB gaming mouse"
-      ]
-    },
-    {
-      "product": "The Derma Co 2% Salicylic Acid Serum",
-      "brand": "The Derma Co",
-      "price": "₹500–₹1,000",
+      "productType": "Anti-Aging Creams",
+      "price": "₹499–₹699",
       "category": "Skincare",
-      "imageQuery": "The Derma Co Salicylic Acid Serum",
+      "imageQuery": "WOW Skin Science Anti-Aging Cream",
       "keywords": [
-        "The Derma Co salicylic acid india",
-        "acne fighting serum 2026",
-        "pore clearing serum"
+        "WOW Skin Science Night Cream india",
+        "anti-wrinkle cream 2026",
+        "rejuvenating night cream"
       ]
     },
     {
-      "product": "Nova NHP1000 Hair Dryer",
-      "brand": "Nova",
-      "price": "₹600–₹1,000",
-      "category": "Grooming Tools",
-      "imageQuery": "Nova NHP1000 Hair Dryer",
+      "product": "Cetaphil Gentle Skin Cleanser",
+      "brand": "Cetaphil",
+      "productType": "Gentle Cleansers",
+      "price": "₹349–₹499",
+      "category": "Skincare",
+      "imageQuery": "Cetaphil Gentle Skin Cleanser",
       "keywords": [
-        "Nova hair dryer india",
-        "compact hair dryer 2026",
-        "travel hair dryer"
+        "Cetaphil Gentle Cleanser india",
+        "sensitive skin cleanser 2026",
+        "hydrating cleanser"
+      ]
+    },
+    {
+      "product": "Biotique Bio Kelp Face Mask",
+      "brand": "Biotique",
+      "productType": "Face Masks",
+      "price": "₹199–₹299",
+      "category": "Skincare",
+      "imageQuery": "Biotique Bio Kelp Face Mask",
+      "keywords": [
+        "Biotique Bio Kelp Face Mask india",
+        "purifying face mask 2026",
+        "natural face mask"
+      ]
+    },
+    {
+      "product": "L'Oréal Paris Revitalift Hyaluronic Acid Serum",
+      "brand": "L'Oréal Paris",
+      "productType": "Hyaluronic Acid Serums",
+      "price": "₹799–₹999",
+      "category": "Skincare",
+      "imageQuery": "L'Oréal Paris Hyaluronic Acid Serum",
+      "keywords": [
+        "L'Oréal Paris Hyaluronic Acid serum india",
+        "plumping serum 2026",
+        "hydrating serum"
+      ]
+    },
+    {
+      "product": "Garnier Vitamin C Brightening Serum",
+      "brand": "Garnier",
+      "productType": "Vitamin C Serums",
+      "price": "₹499–₹699",
+      "category": "Skincare",
+      "imageQuery": "Garnier Vitamin C serum",
+      "keywords": [
+        "Garnier Vitamin C serum india",
+        "radiance serum 2026",
+        "dark spot serum"
+      ]
+    },
+    {
+      "product": "ponds Super Light Gel Moisturizer",
+      "brand": "Pond's",
+      "productType": "Gel Moisturizers",
+      "price": "₹199–₹299",
+      "category": "Skincare",
+      "imageQuery": "Pond's Super Light Gel",
+      "keywords": [
+        "Pond's Super Light Gel india",
+        "oil-free moisturizer 2026",
+        "lightweight moisturizer"
+      ]
+    },
+    {
+      "product": "Re'equil Oil Free Moisturizer",
+      "brand": "Re'equil",
+      "productType": "Oil-Free Moisturizers",
+      "price": "₹349–₹499",
+      "category": "Skincare",
+      "imageQuery": "Re'equil Oil Free Moisturizer",
+      "keywords": [
+        "Re'equil Oil Free Moisturizer india",
+        "acne-prone skin moisturizer 2026",
+        "non-comedogenic moisturizer"
+      ]
+    },
+    {
+      "product": "Lakmé Absolute Perfect Radiance Skin Brightening Serum",
+      "brand": "Lakmé",
+      "productType": "Skin Brightening Serums",
+      "price": "₹699–₹899",
+      "category": "Skincare",
+      "imageQuery": "Lakmé Absolute Radiance Serum",
+      "keywords": [
+        "Lakmé Absolute Radiance Serum india",
+        "glowing skin serum 2026",
+        "dark spot corrector"
+      ]
+    },
+    {
+      "product": "Nivea Soft Refreshingly Light Moisturizing Cream",
+      "brand": "Nivea",
+      "productType": "Moisturizing Creams",
+      "price": "₹199–₹299",
+      "category": "Bath & Body",
+      "imageQuery": "Nivea Soft cream",
+      "keywords": [
+        "Nivea Soft cream india",
+        "all-purpose moisturizer 2026",
+        "face and body cream"
+      ]
+    },
+    {
+      "product": "Dove Cream Beauty Bathing Bar",
+      "brand": "Dove",
+      "productType": "Beauty Bars",
+      "price": "₹149–₹249",
+      "category": "Bath & Body",
+      "imageQuery": "Dove Cream Beauty Bar",
+      "keywords": [
+        "Dove Cream Beauty Bar india",
+        "moisturizing soap 2026",
+        "gentle cleansing bar"
+      ]
+    },
+    {
+      "product": "Pears Pure & Gentle Soap",
+      "brand": "Pears",
+      "productType": "Soaps",
+      "price": "₹129–₹199",
+      "category": "Bath & Body",
+      "imageQuery": "Pears Pure Gentle Soap",
+      "keywords": [
+        "Pears Pure Gentle Soap india",
+        "glycerin soap 2026",
+        "mild soap"
+      ]
+    },
+    {
+      "product": "Fiama Gel Shower Gel",
+      "brand": "Fiama",
+      "productType": "Shower Gels",
+      "price": "₹249–₹349",
+      "category": "Bath & Body",
+      "imageQuery": "Fiama Gel Shower Gel",
+      "keywords": [
+        "Fiama Shower Gel india",
+        "refreshing body wash 2026",
+        "long-lasting fragrance body wash"
+      ]
+    },
+    {
+      "product": "Lifebuoy Total 10 Handwash",
+      "brand": "Lifebuoy",
+      "productType": "Handwashes",
+      "price": "₹199–₹299",
+      "category": "Bath & Body",
+      "imageQuery": "Lifebuoy Total 10 Handwash",
+      "keywords": [
+        "Lifebuoy Handwash india",
+        "germ protection handwash 2026",
+        "antibacterial handwash"
+      ]
+    },
+    {
+      "product": "Khadi Natural Herbal Handwash",
+      "brand": "Khadi Natural",
+      "productType": "Herbal Handwashes",
+      "price": "₹299–₹399",
+      "category": "Bath & Body",
+      "imageQuery": "Khadi Natural Handwash",
+      "keywords": [
+        "Khadi Natural Handwash india",
+        "herbal handwash 2026",
+        "natural ingredients handwash"
+      ]
+    },
+    {
+      "product": "Biotique Bio Wild Cherry Clarifying Shampoo",
+      "brand": "Biotique",
+      "productType": "Clarifying Shampoos",
+      "price": "₹199–₹299",
+      "category": "Hair Care",
+      "imageQuery": "Biotique Bio Wild Cherry Shampoo",
+      "keywords": [
+        "Biotique Wild Cherry Shampoo india",
+        "purifying shampoo 2026",
+        "hair cleanse shampoo"
+      ]
+    },
+    {
+      "product": "Mamaearth Onion Hair Shampoo",
+      "brand": "Mamaearth",
+      "productType": "Onion Shampoos",
+      "price": "₹349–₹499",
+      "category": "Hair Care",
+      "imageQuery": "Mamaearth Onion Shampoo",
+      "keywords": [
+        "Mamaearth Onion Shampoo india",
+        "hair fall shampoo 2026",
+        "sulfate-free shampoo"
+      ]
+    },
+    {
+      "product": "L'Oréal Paris Extraordinary Oil Serum",
+      "brand": "L'Oréal Paris",
+      "productType": "Hair Serums",
+      "price": "₹499–₹699",
+      "category": "Hair Care",
+      "imageQuery": "L'Oréal Paris Extraordinary Oil Serum",
+      "keywords": [
+        "L'Oréal Paris Hair Serum india",
+        "frizz control serum 2026",
+        "hair shine serum"
+      ]
+    },
+    {
+      "product": "Biotique Banana Deep Nourishing Hair Mask",
+      "brand": "Biotique",
+      "productType": "Hair Masks",
+      "price": "₹199–₹299",
+      "category": "Hair Care",
+      "imageQuery": "Biotique Banana Hair Mask",
+      "keywords": [
+        "Biotique Banana Hair Mask india",
+        "hair repair mask 2026",
+        "moisturizing hair mask"
+      ]
+    },
+    {
+      "product": "Parachute Advansed Jasmine Hair Oil",
+      "brand": "Parachute Advansed",
+      "productType": "Hair Oils",
+      "price": "₹149–₹249",
+      "category": "Hair Care",
+      "imageQuery": "Parachute Advansed Jasmine Hair Oil",
+      "keywords": [
+        "Parachute Advansed Jasmine Oil india",
+        "hair growth oil 2026",
+        "nourishing hair oil"
+      ]
+    },
+    {
+      "product": "Livon Serum",
+      "brand": "Livon",
+      "productType": "Hair Serums",
+      "price": "₹199–₹299",
+      "category": "Hair Care",
+      "imageQuery": "Livon Serum",
+      "keywords": [
+        "Livon Serum india",
+        "hair conditioning serum 2026",
+        "anti-frizz serum"
+      ]
+    },
+    {
+      "product": "TRESemmé Keratin Smooth Shampoo",
+      "brand": "TRESemmé",
+      "productType": "Keratin Shampoos",
+      "price": "₹249–₹349",
+      "category": "Hair Care",
+      "imageQuery": "TRESemmé Keratin Smooth Shampoo",
+      "keywords": [
+        "TRESemmé Keratin Shampoo india",
+        "smoothness shampoo 2026",
+        "frizz control shampoo"
+      ]
+    },
+    {
+      "product": "The Body Shop Olive Body Butter",
+      "brand": "The Body Shop",
+      "productType": "Body Butters",
+      "price": "₹499–₹699",
+      "category": "Bath & Body",
+      "imageQuery": "The Body Shop Olive Body Butter",
+      "keywords": [
+        "The Body Shop Olive Butter india",
+        "intense moisture body butter 2026",
+        "dry skin body butter"
+      ]
+    },
+    {
+      "product": "Vaseline Intensive Care Deep Restore Body Lotion",
+      "brand": "Vaseline",
+      "productType": "Body Lotions",
+      "price": "₹249–₹349",
+      "category": "Bath & Body",
+      "imageQuery": "Vaseline Intensive Care Lotion",
+      "keywords": [
+        "Vaseline Deep Restore Lotion india",
+        "dry skin body lotion 2026",
+        "moisturizing body lotion"
+      ]
+    },
+    {
+      "product": "Yardley London English Rose Body Wash",
+      "brand": "Yardley London",
+      "productType": "Body Washes",
+      "price": "₹199–₹299",
+      "category": "Bath & Body",
+      "imageQuery": "Yardley London Rose Body Wash",
+      "keywords": [
+        "Yardley London Rose Body Wash india",
+        "floral body wash 2026",
+        "gentle body wash"
+      ]
+    },
+    {
+      "product": "Pears Naturale Purifying Neem Body Wash",
+      "brand": "Pears",
+      "productType": "Neem Body Washes",
+      "price": "₹199–₹299",
+      "category": "Bath & Body",
+      "imageQuery": "Pears Naturale Neem Body Wash",
+      "keywords": [
+        "Pears Naturale Neem Body Wash india",
+        "antibacterial body wash 2026",
+        "natural body wash"
+      ]
+    },
+    {
+      "product": "Himalaya Gentle Exfoliating Walnut Scrub",
+      "brand": "Himalaya",
+      "productType": "Exfoliating Scrubs",
+      "price": "₹199–₹299",
+      "category": "Bath & Body",
+      "imageQuery": "Himalaya Walnut Scrub",
+      "keywords": [
+        "Himalaya Walnut Scrub india",
+        "face and body scrub 2026",
+        "natural scrub"
+      ]
+    },
+    {
+      "product": "mcaffeine Coffee Body Scrub",
+      "brand": "mCaffeine",
+      "productType": "Coffee Body Scrubs",
+      "price": "₹299–₹399",
+      "category": "Bath & Body",
+      "imageQuery": "mCaffeine Coffee Body Scrub",
+      "keywords": [
+        "mCaffeine Coffee Scrub india",
+        "exfoliating coffee scrub 2026",
+        "skin polishing scrub"
+      ]
+    },
+    {
+      "product": "Airdopes Atom 81",
+      "brand": "boAt",
+      "productType": "True Wireless Earbuds",
+      "price": "₹1,299–₹1,999",
+      "category": "Audio",
+      "imageQuery": "boAt Airdopes Atom 81",
+      "keywords": [
+        "boAt Airdopes Atom 81 india",
+        "best TWS earbuds under 2000 2026",
+        "gaming TWS"
+      ]
+    },
+    {
+      "product": "Noise Buds Aero",
+      "brand": "Noise",
+      "productType": "True Wireless Earbuds",
+      "price": "₹1,799–₹2,499",
+      "category": "Audio",
+      "imageQuery": "Noise Buds Aero",
+      "keywords": [
+        "Noise Buds Aero india",
+        "premium TWS earbuds 2026",
+        "ANC earbuds"
+      ]
+    },
+    {
+      "product": "Boult Audio Powerbuds",
+      "brand": "Boult Audio",
+      "productType": "True Wireless Earbuds",
+      "price": "₹1,499–₹2,199",
+      "category": "Audio",
+      "imageQuery": "Boult Audio Powerbuds",
+      "keywords": [
+        "Boult Audio Powerbuds india",
+        "long battery life earbuds 2026",
+        "sport earbuds"
+      ]
+    },
+    {
+      "product": "realme Buds T100",
+      "brand": "realme",
+      "productType": "True Wireless Earbuds",
+      "price": "₹1,299–₹1,999",
+      "category": "Audio",
+      "imageQuery": "realme Buds T100",
+      "keywords": [
+        "realme Buds T100 india",
+        "affordable TWS earbuds 2026",
+        "bass boost earbuds"
+      ]
+    },
+    {
+      "product": "Sony WH-CH520",
+      "brand": "Sony",
+      "productType": "Wireless Headphones",
+      "price": "₹3,999–₹4,999",
+      "category": "Audio",
+      "imageQuery": "Sony WH-CH520 headphones",
+      "keywords": [
+        "Sony WH-CH520 india",
+        "over-ear wireless headphones 2026",
+        "long battery headphones"
+      ]
+    },
+    {
+      "product": "JBL Tune 510BT",
+      "brand": "JBL",
+      "productType": "Wireless Headphones",
+      "price": "₹2,999–₹3,999",
+      "category": "Audio",
+      "imageQuery": "JBL Tune 510BT headphones",
+      "keywords": [
+        "JBL Tune 510BT india",
+        "bluetooth on-ear headphones 2026",
+        "deep bass headphones"
+      ]
+    },
+    {
+      "product": "Anker PowerCore Slim 10000 PD",
+      "brand": "Anker",
+      "productType": "Power Banks",
+      "price": "₹2,499–₹3,499",
+      "category": "Mobile Accessories",
+      "imageQuery": "Anker PowerCore Slim 10000 PD",
+      "keywords": [
+        "Anker PowerCore Slim 10000 PD india",
+        "USB-C power bank 2026",
+        "fast charging portable charger"
       ]
     }
   ]
