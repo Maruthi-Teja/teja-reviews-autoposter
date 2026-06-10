@@ -15,6 +15,7 @@ const GEMINI_KEY     = process.env.GEMINI_API_KEY;
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
 const INDEXNOW_KEY   = process.env.INDEXNOW_KEY;
 const AFFILIATE_TAG  = "maruthiteja-21";
+const AUTHOR_NAME    = "Teja"; // public byline shown on posts (keeps full name private)
 const HISTORY_FILE   = "./posted.json";
 const SEO_YEAR       = 2026;
 const POST_TYPE      = process.env.POST_TYPE || "review"; // review | buying_guide | comparison
@@ -1386,6 +1387,45 @@ async function getTagIds(auth, tags) {
   return ids.filter(Boolean);
 }
 
+// Ensure the WordPress display name (post byline) is AUTHOR_NAME, not the
+// account's full name. Idempotent — only updates when it differs.
+async function ensureAuthorDisplayName(auth) {
+  try {
+    const res = await fetchWithTimeout(
+      `${WORDPRESS_URL}/wp-json/wp/v2/users/me?context=edit`,
+      { headers: { Authorization: `Basic ${auth}` } },
+      FETCH_TIMEOUT_MS
+    );
+    if (!res.ok) {
+      console.log(`⚠️  Could not read author profile: ${res.status} — skipping byline check`);
+      return;
+    }
+    const me = await res.json();
+    if (me.name === AUTHOR_NAME) return;
+
+    console.log(`✍️  Updating author byline: "${me.name}" → "${AUTHOR_NAME}"`);
+    const upd = await fetchWithTimeout(
+      `${WORDPRESS_URL}/wp-json/wp/v2/users/me`,
+      {
+        method:  "POST",
+        headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          name:       AUTHOR_NAME,
+          nickname:   AUTHOR_NAME,
+          first_name: AUTHOR_NAME,
+          last_name:  ""
+        })
+      },
+      FETCH_TIMEOUT_MS
+    );
+    console.log(upd.ok
+      ? `✅ Author byline set to "${AUTHOR_NAME}"`
+      : `⚠️  Byline update failed: ${upd.status}`);
+  } catch (err) {
+    console.log(`⚠️  Byline check failed: ${err.message} — continuing`);
+  }
+}
+
 async function publishToWordPress(content, meta, featuredImageId, auth) {
   console.log(`\n🚀 Publishing to tejareviews.in…`);
 
@@ -1467,6 +1507,9 @@ async function main() {
   if (!WP_APP_PASS) throw new Error("Missing WP_APP_PASSWORD");
 
   const auth = Buffer.from(`${WP_USERNAME}:${WP_APP_PASS}`).toString("base64");
+
+  // Public byline should be "Teja", never the account's full name.
+  await ensureAuthorDisplayName(auth);
 
   let content, meta, imageUrl, uploadedImg, postKey, productContext;
 
